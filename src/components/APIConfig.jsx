@@ -19,7 +19,7 @@ export default function APIConfig({
     const { name, value } = e.target;
     onConfigChange({
       ...apiConfig,
-      [name]: name === 'delayMs' ? Number(value) : value
+      [name]: name === 'delayMs' || name === 'concurrency' ? Number(value) : value
     });
   };
 
@@ -129,6 +129,23 @@ export default function APIConfig({
             />
             <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
               Prevents rate limits. Default is 200ms.
+            </span>
+          </div>
+
+          {/* Concurrency */}
+          <div className="form-group">
+            <label className="form-label">Concurrent requests</label>
+            <input
+              type="number"
+              name="concurrency"
+              className="input-text"
+              min="1"
+              max="20"
+              value={apiConfig.concurrency}
+              onChange={handleInputChange}
+            />
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+              Number of parallel fetches per batch. Default is 5. Increase for speed, decrease if rate-limited.
             </span>
           </div>
         </div>

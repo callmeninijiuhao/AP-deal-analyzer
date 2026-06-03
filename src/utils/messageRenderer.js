@@ -106,7 +106,12 @@ export function renderMessage(template, values) {
     })
     .join('\n\n');
 
+  const dealCount = values.deals.length;
+  const publisherCount = values.deals.reduce((acc, d) => acc + d.publishers.length, 0);
+
   return template
     .replace(/{owner_name}/g, values.ownerName)
-    .replace(/{deal_list}/g, dealListText);
+    .replace(/{deal_list}/g, dealListText)
+    .replace(/{deal_count}/g, String(dealCount))
+    .replace(/{publisher_count}/g, String(publisherCount));
 }

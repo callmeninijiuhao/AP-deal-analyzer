@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Download, Mail, ArrowRight, CheckCircle2, AlertTriangle, XCircle, Search } from 'lucide-react';
-import { exportGapsToCsv } from '../utils/exportCsv';
+import { exportGapsToCsv, exportGapsToExcel } from '../utils/exportCsv';
 
 /**
  * Renders the Gap Analysis report (Step 3).
@@ -53,9 +53,14 @@ export default function GapAnalysis({
             Comparison of wanted deal mappings against live monetizing deals.
           </p>
         </div>
-        <button className="btn btn-secondary" onClick={handleExport} style={{ display: 'inline-flex', gap: '0.5rem' }}>
-          <Download size={16} /> Export Gaps CSV
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button className="btn btn-secondary" onClick={handleExport} style={{ display: 'inline-flex', gap: '0.5rem' }}>
+            <Download size={16} /> Export CSV
+          </button>
+          <button className="btn btn-secondary" onClick={() => exportGapsToExcel(gapData)} style={{ display: 'inline-flex', gap: '0.5rem' }}>
+            <Download size={16} /> Export Excel
+          </button>
+        </div>
       </div>
 
       {/* Metrics Widgets */}
@@ -124,11 +129,11 @@ export default function GapAnalysis({
           <table className="data-table">
             <thead>
               <tr>
+                <th style={{ width: '20%' }}>Deal Owner(s)</th>
                 <th style={{ width: '15%' }}>Publisher ID</th>
                 <th style={{ width: '15%' }}>Coverage</th>
                 <th style={{ width: '35%' }}>Missing AP Deals</th>
                 <th style={{ width: '15%' }}>Missed Revenue</th>
-                <th style={{ width: '20%' }}>Deal Owner(s)</th>
               </tr>
             </thead>
             <tbody>
@@ -137,6 +142,7 @@ export default function GapAnalysis({
                 if (record.failed) {
                   return (
                     <tr key={record.pubId}>
+                      <td style={{ color: 'var(--text-muted)' }}>—</td>
                       <td><code>{record.pubId}</code></td>
                       <td>
                         <span className="badge badge-error" style={{ display: 'inline-flex', gap: '0.25rem' }}>
@@ -147,7 +153,6 @@ export default function GapAnalysis({
                         {record.errorMsg ? String(record.errorMsg).replace(/^✗ Failed:\s*/, '') : 'API failed to respond for this publisher.'}
                       </td>
                       <td style={{ color: 'var(--text-muted)' }}>—</td>
-                      <td style={{ color: 'var(--text-muted)' }}>—</td>
                     </tr>
                   );
                 }
@@ -156,6 +161,7 @@ export default function GapAnalysis({
                 if (record.missingDeals.length === 0) {
                   return (
                     <tr key={record.pubId}>
+                      <td style={{ color: 'var(--text-muted)' }}>—</td>
                       <td><code>{record.pubId}</code></td>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -171,7 +177,6 @@ export default function GapAnalysis({
                         </span>
                       </td>
                       <td>$0.00</td>
-                      <td style={{ color: 'var(--text-muted)' }}>—</td>
                     </tr>
                   );
                 }
@@ -182,6 +187,15 @@ export default function GapAnalysis({
 
                 return (
                   <tr key={record.pubId}>
+                    <td>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem', fontSize: '0.85rem' }}>
+                        {owners.map((owner, idx) => (
+                          <span key={idx} style={{ color: 'var(--text-secondary)', wordBreak: 'break-all' }} title={owner}>
+                            {owner}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
                     <td><code>{record.pubId}</code></td>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -217,15 +231,6 @@ export default function GapAnalysis({
                           ? `$${record.missingRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
                           : '$0.00'}
                       </span>
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem', fontSize: '0.85rem' }}>
-                        {owners.map((owner, idx) => (
-                          <span key={idx} style={{ color: 'var(--text-secondary)', wordBreak: 'break-all' }} title={owner}>
-                            {owner}
-                          </span>
-                        ))}
-                      </div>
                     </td>
                   </tr>
                 );

@@ -30,6 +30,7 @@ export default function App() {
 
   // Step 2 Data
   const [publishers, setPublishers] = useState([]);
+  const [publisherText, setPublisherText] = useState('');
 
   // Step 3 Data (API Configuration)
   const [apiConfig, setApiConfig] = useState({
@@ -37,6 +38,7 @@ export default function App() {
     authHeader: '',
     jsonPath: 'rows',
     delayMs: 200,
+    concurrency: 5,
     fromDate: formatDateLocal(sevenDaysAgo),
     toDate: formatDateLocal(today)
   });
@@ -82,6 +84,7 @@ export default function App() {
     // Auto-populate publisher list with detected CSV publishers if any
     if (detectedPublishers.length > 0) {
       setPublishers(detectedPublishers);
+      setPublisherText(detectedPublishers.join('\n'));
     }
     
     // Move to Step 2: Target Publishers Setup
@@ -259,6 +262,12 @@ export default function App() {
     setStep(3);
   };
 
+  const handleBackFromFetch = () => {
+    setHasFetched(false);
+    setIsVerifying(false);
+    setStep(3);
+  };
+
   const navigateToStep = (targetStep) => {
     if (isFetching) return;
     if (targetStep !== 3) {
@@ -307,6 +316,8 @@ export default function App() {
         {step === 2 && (
           <PublisherListInput
             initialPublishers={publishers}
+            text={publisherText}
+            onTextChange={setPublisherText}
             onChange={(pubs) => setPublishers(pubs)}
             onNext={() => setStep(3)}
             onPrev={() => setStep(1)}
@@ -430,6 +441,7 @@ export default function App() {
                 onCancel={handleCancelFetch}
                 onProceed={() => setStep(4)}
                 onReset={handleResetFetch}
+                onBackToConfig={handleBackFromFetch}
               />
             )}
           </>

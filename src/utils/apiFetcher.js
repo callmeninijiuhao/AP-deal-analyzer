@@ -228,30 +228,39 @@ export async function fetchAllPublishers({
 }) {
   const monetizingMap = {};
   const delayMs = apiConfig.delayMs !== undefined ? apiConfig.delayMs : 200;
+  const concurrency = apiConfig.concurrency !== undefined ? apiConfig.concurrency : 5;
 
-  for (let i = 0; i < publishers.length; i++) {
+  // Process publishers in concurrent batches to speed up fetching
+  for (let i = 0; i < publishers.length; i += concurrency) {
     if (controlSignal?.cancelled) {
       break;
     }
 
-    const pubId = publishers[i];
-    onProgress(pubId, 'fetching', 'Fetching deals...', 0);
+    const batch = publishers.slice(i, i + concurrency);
 
-    try {
-      const deals = await fetchPublisherDeals(pubId, apiConfig);
-      monetizingMap[pubId] = deals;
-      onProgress(pubId, 'success', `✓ Successfully fetched ${deals.length} deals`, deals.length);
-    } catch (err) {
-      monetizingMap[pubId] = []; // Empty array on failure
-      let errMsg = err.message;
-      if (errMsg === 'Failed to fetch' || errMsg === 'Load failed') {
-        errMsg = 'Failed to fetch (Network error or server unreachable)';
+    const batchPromises = batch.map(async (pubId) => {
+      if (controlSignal?.cancelled) return;
+
+      onProgress(pubId, 'fetching', 'Fetching deals...', 0);
+
+      try {
+        const deals = await fetchPublisherDeals(pubId, apiConfig);
+        monetizingMap[pubId] = deals;
+        onProgress(pubId, 'success', `✓ Successfully fetched ${deals.length} deals`, deals.length);
+      } catch (err) {
+        monetizingMap[pubId] = []; // Empty array on failure
+        let errMsg = err.message;
+        if (errMsg === 'Failed to fetch' || errMsg === 'Load failed') {
+          errMsg = 'Failed to fetch (Network error or server unreachable)';
+        }
+        onProgress(pubId, 'error', `✗ Failed: ${errMsg}`, 0);
       }
-      onProgress(pubId, 'error', `✗ Failed: ${errMsg}`, 0);
-    }
+    });
 
-    // Delay between requests (skipped on last request or if cancelled)
-    if (i < publishers.length - 1 && !controlSignal?.cancelled && delayMs > 0) {
+    await Promise.all(batchPromises);
+
+    // Short delay between batches to avoid hammering the API
+    if (i + concurrency < publishers.length && !controlSignal?.cancelled && delayMs > 0) {
       await new Promise(resolve => setTimeout(resolve, delayMs));
     }
   }

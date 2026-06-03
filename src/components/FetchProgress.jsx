@@ -11,6 +11,7 @@ import { Play, Square, Check, RefreshCcw } from 'lucide-react';
  * @param {function} props.onCancel - Cancel handler.
  * @param {function} props.onProceed - Next step handler.
  * @param {function} props.onReset - Start over handler.
+ * @param {function} props.onBackToConfig - Back to API config handler.
  */
 export default function FetchProgress({
   isFetching,
@@ -19,7 +20,8 @@ export default function FetchProgress({
   totalCount,
   onCancel,
   onProceed,
-  onReset
+  onReset,
+  onBackToConfig
 }) {
   const consoleRef = useRef(null);
 
@@ -92,6 +94,11 @@ export default function FetchProgress({
           {!isFetching && !isFinished && (
             <button className="btn btn-secondary" onClick={onReset} style={{ display: 'inline-flex', gap: '0.5rem' }}>
               <RefreshCcw size={16} /> Reset
+            </button>
+          )}
+          {!isFetching && (
+            <button className="btn btn-secondary" onClick={onBackToConfig} style={{ display: 'inline-flex', gap: '0.5rem', marginLeft: '0.5rem' }}>
+              Back to Config
             </button>
           )}
         </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Users, Info } from 'lucide-react';
 import PublisherUploader from './PublisherUploader';
 
@@ -6,17 +6,23 @@ import PublisherUploader from './PublisherUploader';
  * Textarea input and bulk file uploader for publisher IDs (Step 2).
  * @param {Object} props
  * @param {string[]} props.initialPublishers - Array of publisher IDs parsed from CSV.
+ * @param {string} props.text - Controlled textarea value (optional).
+ * @param {function} props.onTextChange - Callback when textarea text changes (optional).
  * @param {function} props.onChange - Handler returning clean array of publisher IDs.
  * @param {function} props.onNext - Navigate to next stage.
  * @param {function} props.onPrev - Navigate to previous stage.
  */
 export default function PublisherListInput({ 
   initialPublishers = [], 
+  text: controlledText,
+  onTextChange,
   onChange,
   onNext,
   onPrev
 }) {
-  const [text, setText] = useState(() => (initialPublishers || []).join('\n'));
+  const [internalText, setInternalText] = useState(() => (initialPublishers || []).join('\n'));
+  const text = controlledText !== undefined ? controlledText : internalText;
+  const setText = onTextChange || setInternalText;
 
   const updateList = (newText) => {
     setText(newText);
@@ -26,6 +32,15 @@ export default function PublisherListInput({
       .filter(Boolean);
     onChange(parsed);
   };
+
+  // Sync with initialPublishers on mount when no controlled text is provided
+  const hasSynced = useRef(false);
+  useEffect(() => {
+    if (controlledText === undefined && !hasSynced.current && initialPublishers.length > 0) {
+      setInternalText(initialPublishers.join('\n'));
+      hasSynced.current = true;
+    }
+  }, [initialPublishers, controlledText]);
 
   const handleChange = (e) => {
     updateList(e.target.value);

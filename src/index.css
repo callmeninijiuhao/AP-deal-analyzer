@@ -219,6 +219,22 @@ header {
   width: 100%;
 }
 
+/* Fix date input visibility in dark theme */
+input[type="date"] {
+  color-scheme: dark;
+  color: var(--text-primary);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
 .input-text:focus, .textarea:focus {
   border-color: var(--border-focus);
   background: rgba(255, 255, 255, 0.06);

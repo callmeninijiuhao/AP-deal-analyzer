@@ -45,8 +45,6 @@ export function exportGapsToCsv(gapData) {
     }
     
     if (pubRecord.missingDeals.length === 0) {
-      // Publisher is 100% mapped, can skip or show as all mapped
-      // Usually we just want to export the gaps, but let's only output actual gaps.
       return;
     }
     
@@ -83,4 +81,54 @@ export function exportGapsToCsv(gapData) {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+}
+
+/**
+ * Generates and downloads an Excel (.xlsx) file containing the gap analysis details.
+ * @param {Array<{
+ *   pubId: string,
+ *   missingDeals: Array<{id: string, name: string, owner: string, revenue?: number}>,
+ *   failed: boolean,
+ *   errorMsg?: string
+ * }>} gapData - The computed gap data.
+ */
+export function exportGapsToExcel(gapData) {
+  import('xlsx').then(XLSX => {
+    const headers = ['Publisher ID', 'Deal ID', 'Deal Name', 'Deal Owner', 'Deal Revenue'];
+    const rows = [];
+
+    gapData.forEach(pubRecord => {
+      if (pubRecord.failed) {
+        rows.push([
+          pubRecord.pubId,
+          'ERROR',
+          pubRecord.errorMsg ? String(pubRecord.errorMsg).replace(/^✗ Failed:\s*/, '') : 'Failed to fetch live deals',
+          '—',
+          '—'
+        ]);
+        return;
+      }
+
+      if (pubRecord.missingDeals.length === 0) {
+        return;
+      }
+
+      pubRecord.missingDeals.forEach(deal => {
+        rows.push([
+          pubRecord.pubId,
+          deal.id,
+          deal.name,
+          deal.owner,
+          deal.revenue !== undefined ? deal.revenue : 0
+        ]);
+      });
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Gap Analysis');
+
+    const dateStr = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(wb, `ap_gap_report_${dateStr}.xlsx`);
+  });
 }
