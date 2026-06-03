@@ -1,0 +1,260 @@
+/**
+ * Resolves a dot-notation JSON path on an object.
+ * e.g., "data.deals" on { data: { deals: [...] } }
+ * @param {Object} obj - The target object.
+ * @param {string} path - The dot-notation path.
+ * @returns {*} The resolved value or undefined.
+ */
+function resolveJsonPath(obj, path) {
+  if (!path) return obj;
+  return path.split('.').reduce((acc, key) => {
+    if (acc === null || acc === undefined) return undefined;
+    return acc[key];
+  }, obj);
+}
+
+/**
+ * Normalizes deal objects to extract the deal ID string.
+ * @param {any} deal - The deal object or string.
+ * @returns {string|null}
+ */
+function extractDealId(deal) {
+  if (!deal) return null;
+  if (typeof deal === 'string' || typeof deal === 'number') {
+    return String(deal).trim();
+  }
+  // Try common keys
+  const idKeys = ['dealMetaId', 'deal_meta_id', 'deal_id', 'dealId', 'id', 'deal', 'ap_id', 'apId'];
+  for (const key of idKeys) {
+    if (deal[key] !== undefined && deal[key] !== null) {
+      return String(deal[key]).trim();
+    }
+  }
+  return null;
+}
+
+/**
+ * Fetches deals for a single publisher.
+ * @param {string} pubId - The publisher ID.
+ * @param {Object} apiConfig - API configurations.
+ * @returns {Promise<string[]>} List of deal IDs.
+ */
+/**
+ * Determines and returns the active token.
+ * Uses the obfuscated Access Token directly until July 10, 2026.
+ * After that, returns null to signal that refresh/rotation is required via Refresh Token.
+ * @returns {string|null} The token string or null if rotation is required.
+ */
+export function getActiveToken() {
+  // Base64 of Access Token: kqa0ZV51JpWd0KUf04LiLFQ5pIBT
+  const OBFUSCATED_ACCESS_TOKEN = "a3FhMFpWNTFKcFdkMEtVZjA0TGlMRlE1cElCVA==";
+  const token = atob(OBFUSCATED_ACCESS_TOKEN);
+  
+  const currentDate = new Date();
+  const refreshDeadline = new Date('2026-07-10T00:00:00');
+  
+  if (currentDate >= refreshDeadline) {
+    return null; // Rotation deadline reached, must refresh using refresh token
+  }
+  
+  return token;
+}
+
+/**
+ * Fetches deals for a single publisher.
+ * @param {string} pubId - The publisher ID.
+ * @param {Object} apiConfig - API configurations.
+ * @returns {Promise<string[]>} List of deal IDs.
+ */
+/**
+ * Checks whether the local CORS proxy is reachable.
+ * @returns {Promise<{ok: boolean, error?: string}>}
+ */
+export async function checkProxyHealth() {
+  try {
+    const res = await fetch('http://localhost:3001/health', { method: 'GET', signal: AbortSignal.timeout(3000) });
+    if (res.ok) return { ok: true };
+    return { ok: false, error: `Proxy health returned HTTP ${res.status}` };
+  } catch {
+    return { ok: false, error: 'Local proxy is not running on port 3001. Start it with: npm run proxy' };
+  }
+}
+
+export async function fetchPublisherDeals(pubId, apiConfig) {
+  let url = apiConfig.baseUrl.replace('{pub_id}', encodeURIComponent(pubId));
+
+  // Replace date placeholders if present
+  if (apiConfig.fromDate) {
+    url = url.replace('{from_date}', encodeURIComponent(apiConfig.fromDate));
+  }
+  if (apiConfig.toDate) {
+    url = url.replace('{to_date}', encodeURIComponent(apiConfig.toDate));
+  }
+
+  // Auto-route through local proxy in development to bypass browser CORS locks
+  const isDev = import.meta.env.DEV || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (isDev) {
+    const proxyHealth = await checkProxyHealth();
+    if (!proxyHealth.ok) {
+      throw new Error(proxyHealth.error);
+    }
+    url = `http://localhost:3001/proxy?url=${encodeURIComponent(url)}`;
+  }
+  
+  const headers = {};
+  if (apiConfig.authHeader) {
+    const auth = apiConfig.authHeader.trim();
+    headers['Authorization'] = /^bearer\s+/i.test(auth) ? auth : `Bearer ${auth}`;
+  }
+
+  const response = await fetch(url, { headers });
+  
+  if (!response.ok) {
+    let errorMsg = `HTTP ${response.status} ${response.statusText}`;
+    try {
+      const text = await response.text();
+      try {
+        const parsed = JSON.parse(text);
+        const serverMsg = parsed.message || parsed.error || parsed.errorMessage || parsed.description || JSON.stringify(parsed);
+        errorMsg += ` (${serverMsg})`;
+      } catch {
+        if (text && text.trim().length < 200) {
+          errorMsg += ` (${text.trim()})`;
+        }
+      }
+    } catch {
+      // Ignore body read errors
+    }
+
+    // Provide actionable hints for common proxy / network errors
+    if (errorMsg.includes('URL not allowed by proxy policy') || errorMsg.includes('not allowed')) {
+      errorMsg += ' [Hint: Your network or a corporate proxy may be blocking this API URL. Try using a VPN, or check if your organization restricts outbound traffic.]';
+    }
+    if (response.status === 403) {
+      errorMsg += ' [Hint: 403 usually means the token is invalid/expired, the IP is not allowlisted, or the endpoint requires different permissions.]';
+    }
+    if (response.status === 401) {
+      errorMsg += ' [Hint: 401 means authentication failed. Check your token or try refreshing it.]';
+    }
+
+    throw new Error(errorMsg);
+  }
+
+  const json = await response.json();
+  const rawDeals = resolveJsonPath(json, apiConfig.jsonPath);
+
+  if (!rawDeals) {
+    throw new Error(`Path "${apiConfig.jsonPath}" not found in response`);
+  }
+
+  if (!Array.isArray(rawDeals)) {
+    throw new Error(`Expected an array at path "${apiConfig.jsonPath}", got ${typeof rawDeals}`);
+  }
+
+  // If the rows are arrays of values, zip them with json.columns if available
+  const columns = json.columns || [];
+  const normalizedDeals = (rawDeals.length > 0 && Array.isArray(rawDeals[0]))
+    ? rawDeals.map(row => {
+        const obj = {};
+        columns.forEach((col, idx) => {
+          obj[col] = row[idx];
+        });
+        return obj;
+      })
+    : rawDeals;
+
+  return normalizedDeals
+    .map(extractDealId)
+    .filter(id => id !== null);
+}
+
+/**
+ * Refreshes the Access Token using the obfuscated refresh token.
+ * @returns {Promise<string>} The new Access Token.
+ */
+export async function refreshAccessToken() {
+  const targetUrl = 'http://api.pubmatic.com/v1/developer-integrations/developer/refreshToken';
+  let url = targetUrl;
+
+  // Auto-route through local proxy in development to bypass browser CORS locks
+  const isDev = import.meta.env.DEV || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (isDev) {
+    url = `http://localhost:3001/proxy?url=${encodeURIComponent(targetUrl)}`;
+  }
+
+  // Base64 of YjObvbVowRh0hIN1EF0eOFYcO1RCWRrO
+  const OBFUSCATED_REFRESH_TOKEN = "WWpPYnZiVm93UmgwaElOMUVGMGVPRlljTzFSQ1dSck8=";
+  
+  const body = {
+    refreshToken: atob(OBFUSCATED_REFRESH_TOKEN)
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    throw new Error(`Token refresh failed (HTTP ${response.status}): ${response.statusText}`);
+  }
+
+  const json = await response.json();
+  const token = json.token || json.accessToken || json.access_token || (json.data && (json.data.token || json.data.accessToken || json.data.access_token));
+
+  if (!token) {
+    throw new Error('Access token not found in refresh response structure');
+  }
+
+  return token;
+}
+
+/**
+ * Sequentially fetches deals for multiple publishers.
+ * Supports cancellation and reporting progress.
+ * @param {string[]} publishers - Array of publisher IDs.
+ * @param {Object} apiConfig - API configuration settings.
+ * @param {Object} controlSignal - Object with 'cancelled' property to stop execution.
+ * @param {Function} onProgress - Callback: (pubId, status, details, resultDealsCount) => void
+ * @returns {Promise<Record<string, string[]>>} Key: publisher ID, Value: array of deal IDs.
+ */
+export async function fetchAllPublishers({
+  publishers,
+  apiConfig,
+  controlSignal,
+  onProgress
+}) {
+  const monetizingMap = {};
+  const delayMs = apiConfig.delayMs !== undefined ? apiConfig.delayMs : 200;
+
+  for (let i = 0; i < publishers.length; i++) {
+    if (controlSignal?.cancelled) {
+      break;
+    }
+
+    const pubId = publishers[i];
+    onProgress(pubId, 'fetching', 'Fetching deals...', 0);
+
+    try {
+      const deals = await fetchPublisherDeals(pubId, apiConfig);
+      monetizingMap[pubId] = deals;
+      onProgress(pubId, 'success', `✓ Successfully fetched ${deals.length} deals`, deals.length);
+    } catch (err) {
+      monetizingMap[pubId] = []; // Empty array on failure
+      let errMsg = err.message;
+      if (errMsg === 'Failed to fetch' || errMsg === 'Load failed') {
+        errMsg = 'Failed to fetch (Network error or server unreachable)';
+      }
+      onProgress(pubId, 'error', `✗ Failed: ${errMsg}`, 0);
+    }
+
+    // Delay between requests (skipped on last request or if cancelled)
+    if (i < publishers.length - 1 && !controlSignal?.cancelled && delayMs > 0) {
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+
+  return monetizingMap;
+}
