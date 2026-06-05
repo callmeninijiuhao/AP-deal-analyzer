@@ -118,12 +118,13 @@ export function autoDetectMappings(headers) {
   ];
   const namePatterns = [/deal\s*name/i, /^name$/i, /ap\s*name/i, /package\s*name/i];
   // Primary owner: must NOT be "Deal Owner Id" (that's a numeric ID column)
+  // and must NOT be a metadata-owner column (e.g. "Deal Metadata Deal Owner").
+  // Tolerant regex catches common misspellings like "Deal Onwer".
   const ownerPatterns = [
-    /deal\s*owner(?!\s*id)/i,         // "Deal Owner" but NOT "Deal Owner Id"
-    /^owner$/i,                       // exact "Owner"
-    /deal\s*owner\s*name/i,           // "Deal Owner Name"
-    /owner\s*name/i,                  // "Owner Name"
-    /account\s*manager/i,             // "Account Manager"
+    /^(?!.*metadata).*deal\s*o[wn][nw]er(?!\s*id)(?:\s*name)?$/i, // "Deal Owner" / "Deal Onwer" / "Deal Owner Name"
+    /^owner$/i,                                                    // exact "Owner"
+    /^onwer$/i,                                                    // exact "Onwer" (common typo)
+    /account\s*manager/i,                                          // "Account Manager"
     /^am$/i,
     /contact/i,
     /email/i

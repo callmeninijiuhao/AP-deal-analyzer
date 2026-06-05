@@ -104,6 +104,22 @@ npm run dev        # Runs on port 5173 by default
 
 The fetch logic in `src/utils/apiFetcher.js` automatically routes requests through `http://localhost:3001/proxy?url=<target>` when `import.meta.env.DEV` is true or the hostname is `localhost`/`127.0.0.1`.
 
+If port 3001 is already in use (e.g. by another local proxy or development tool), copy `.env.example` to `.env` and change both `PROXY_PORT` and `VITE_PROXY_PORT` to an available port, then restart the proxy and Vite dev server:
+
+```bash
+# .env
+PROXY_PORT=3002
+VITE_PROXY_PORT=3002
+```
+
+```bash
+# Terminal 1
+PROXY_PORT=3002 npm run proxy
+
+# Terminal 2
+npm run dev
+```
+
 ---
 
 ## Code Style Guidelines

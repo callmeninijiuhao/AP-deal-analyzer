@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { UploadCloud, CheckCircle2, FileSpreadsheet, Trash2, ArrowRight, ChevronDown } from 'lucide-react';
+import { UploadCloud, CheckCircle2, FileSpreadsheet, Trash2, ArrowRight } from 'lucide-react';
 import { parseFile, autoDetectMappings, mapParsedData } from '../utils/csvParser';
 
 /**
@@ -33,9 +33,6 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
   });
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState('');
-  const [showAdvanced, setShowAdvanced] = useState(
-    Boolean(savedState?.mappings?.ownerMetaCol || savedState?.mappings?.pubIdCol || savedState?.mappings?.revenueCol)
-  );
   
   const fileInputRef = useRef(null);
 
@@ -90,13 +87,6 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
 
   const triggerFileInput = () => {
     fileInputRef.current.click();
-  };
-
-  const handleMappingChange = (field, value) => {
-    setMappings(prev => ({
-      ...prev,
-      [field]: value
-    }));
   };
 
   const resetUploader = () => {
@@ -210,130 +200,6 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
             </button>
           </div>
 
-          {/* Mappings Setup */}
-          <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1.5rem', marginBottom: '1.5rem' }}>
-            <div className="grid-2" style={{ gap: '1rem' }}>
-              <div className="form-group">
-                <label className="form-label" style={{ fontSize: '0.75rem' }}>
-                  Deal ID <span style={{ color: 'var(--error)' }}>*</span>
-                </label>
-                <select
-                  className="input-text"
-                  value={mappings.dealIdCol}
-                  onChange={(e) => handleMappingChange('dealIdCol', e.target.value)}
-                >
-                  <option value="">-- Select Column --</option>
-                  {headers.map(h => (
-                    <option key={h} value={h}>{h}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" style={{ fontSize: '0.75rem' }}>
-                  Deal Name
-                </label>
-                <select
-                  className="input-text"
-                  value={mappings.dealNameCol}
-                  onChange={(e) => handleMappingChange('dealNameCol', e.target.value)}
-                >
-                  <option value="">-- None (Auto name) --</option>
-                  {headers.map(h => (
-                    <option key={h} value={h}>{h}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                <label className="form-label" style={{ fontSize: '0.75rem' }}>
-                  Deal Owner
-                </label>
-                <select
-                  className="input-text"
-                  value={mappings.ownerCol}
-                  onChange={(e) => handleMappingChange('ownerCol', e.target.value)}
-                >
-                  <option value="">-- None (Unknown owner) --</option>
-                  {headers.map(h => (
-                    <option key={h} value={h}>{h}</option>
-                  ))}
-                </select>
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginTop: '0.2rem' }}>
-                  Primary contact/AM for outreach grouping.
-                </span>
-              </div>
-            </div>
-
-            {/* Advanced options toggle */}
-            <div style={{ marginTop: '1.25rem' }}>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setShowAdvanced(s => !s)}
-                style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', gap: '0.35rem' }}
-              >
-                <ChevronDown size={14} style={{ transform: showAdvanced ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }} />
-                Advanced options
-              </button>
-
-              {showAdvanced && (
-                <div className="grid-2" style={{ gap: '1rem', marginTop: '1rem', padding: '1rem', background: 'var(--bg-subtle)', borderRadius: '0.625rem', border: '1px solid var(--border)' }}>
-                  <div className="form-group">
-                    <label className="form-label" style={{ fontSize: '0.75rem' }}>
-                      Deal Metadata Owner
-                    </label>
-                    <select
-                      className="input-text"
-                      value={mappings.ownerMetaCol || ''}
-                      onChange={(e) => handleMappingChange('ownerMetaCol', e.target.value)}
-                    >
-                      <option value="">-- None --</option>
-                      {headers.map(h => (
-                        <option key={h} value={h}>{h}</option>
-                      ))}
-                    </select>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginTop: '0.2rem' }}>
-                      Fallback when primary owner is missing.
-                    </span>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label" style={{ fontSize: '0.75rem' }}>
-                      Publisher ID
-                    </label>
-                    <select
-                      className="input-text"
-                      value={mappings.pubIdCol}
-                      onChange={(e) => handleMappingChange('pubIdCol', e.target.value)}
-                    >
-                      <option value="">-- None (Manually entered) --</option>
-                      {headers.map(h => (
-                        <option key={h} value={h}>{h}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label" style={{ fontSize: '0.75rem' }}>
-                      Deal Revenue
-                    </label>
-                    <select
-                      className="input-text"
-                      value={mappings.revenueCol || ''}
-                      onChange={(e) => handleMappingChange('revenueCol', e.target.value)}
-                    >
-                      <option value="">-- None (No revenue) --</option>
-                      {headers.map(h => (
-                        <option key={h} value={h}>{h}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
           {/* Mapping Preview */}
           {mappings.dealIdCol && mappedData.length > 0 && (
             <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: '0.625rem', padding: '1rem' }}>
@@ -346,7 +212,7 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
                 </span>
               </div>
 
-              <div className="table-container" style={{ maxHeight: '250px', overflowY: 'auto' }}>
+              <div className="table-container" style={{ maxHeight: '55vh', minHeight: '320px', overflowY: 'auto' }}>
                 <table className="data-table">
                   <thead>
                     <tr>

@@ -33,24 +33,9 @@ export default function App() {
   const [publisherText, setPublisherText] = useState('');
 
   // Step 3 Data (API Configuration)
-  const loadSavedToken = () => {
-    try {
-      return {
-        authToken: localStorage.getItem('ap_gap_auth_token') || '',
-        refreshToken: localStorage.getItem('ap_gap_refresh_token') || '',
-        tokenExpiry: localStorage.getItem('ap_gap_token_expiry') || ''
-      };
-    } catch {
-      return { authToken: '', refreshToken: '', tokenExpiry: '' };
-    }
-  };
-  const savedTokens = loadSavedToken();
-
   const [apiConfig, setApiConfig] = useState({
     baseUrl: DEFAULT_PUBMATIC_URL,
-    authToken: savedTokens.authToken,
-    refreshToken: savedTokens.refreshToken,
-    tokenExpiry: savedTokens.tokenExpiry,
+    authToken: '',
     jsonPath: 'rows',
     delayMs: 200,
     concurrency: 5,

@@ -40,43 +40,25 @@ function extractDealId(deal) {
  * @returns {Promise<string[]>} List of deal IDs.
  */
 /**
- * Checks if a token is expired based on the configured expiry date.
- * @param {string|null} expiryDate - ISO date string or null.
- * @returns {boolean}
- */
-export function isTokenExpired(expiryDate) {
-  if (!expiryDate) return false;
-  return new Date() >= new Date(expiryDate);
-}
-
-/**
- * Returns human-readable days until token expiry.
- * @param {string|null} expiryDate
- * @returns {number|null} Days remaining, or null if no expiry set.
- */
-export function getDaysUntilExpiry(expiryDate) {
-  if (!expiryDate) return null;
-  const diff = new Date(expiryDate) - new Date();
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
-}
-
-/**
  * Fetches deals for a single publisher.
  * @param {string} pubId - The publisher ID.
  * @param {Object} apiConfig - API configurations.
  * @returns {Promise<string[]>} List of deal IDs.
  */
+const PROXY_PORT = import.meta.env.VITE_PROXY_PORT || 3001;
+const PROXY_BASE = `http://localhost:${PROXY_PORT}`;
+
 /**
  * Checks whether the local CORS proxy is reachable.
  * @returns {Promise<{ok: boolean, error?: string}>}
  */
 export async function checkProxyHealth() {
   try {
-    const res = await fetch('http://localhost:3001/health', { method: 'GET', signal: AbortSignal.timeout(3000) });
+    const res = await fetch(`${PROXY_BASE}/health`, { method: 'GET', signal: AbortSignal.timeout(3000) });
     if (res.ok) return { ok: true };
     return { ok: false, error: `Proxy health returned HTTP ${res.status}` };
   } catch {
-    return { ok: false, error: 'Local proxy is not running on port 3001. Start it with: npm run proxy' };
+    return { ok: false, error: `Local proxy is not running on port ${PROXY_PORT}. Start it with: PROXY_PORT=${PROXY_PORT} npm run proxy` };
   }
 }
 
@@ -126,7 +108,7 @@ export async function fetchPublisherDeals(pubId, apiConfig) {
     if (!proxyHealth.ok) {
       throw new Error(proxyHealth.error);
     }
-    url = `http://localhost:3001/proxy?url=${encodeURIComponent(url)}`;
+    url = `${PROXY_BASE}/proxy?url=${encodeURIComponent(url)}`;
   }
   
   const headers = {};
@@ -194,46 +176,6 @@ export async function fetchPublisherDeals(pubId, apiConfig) {
   return normalizedDeals
     .map(extractDealId)
     .filter(id => id !== null);
-}
-
-/**
- * Attempts to refresh the Access Token using a user-provided refresh token.
- * @param {string} refreshToken
- * @returns {Promise<string>} The new Access Token.
- */
-export async function refreshAccessToken(refreshToken) {
-  if (!refreshToken) {
-    throw new Error('No refresh token provided. Please obtain a new access token manually.');
-  }
-
-  const targetUrl = 'https://api.pubmatic.com/v1/developer-integrations/developer/refreshToken';
-  let url = targetUrl;
-
-  const isDev = import.meta.env.DEV || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  if (isDev) {
-    url = `http://localhost:3001/proxy?url=${encodeURIComponent(targetUrl)}`;
-  }
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ refreshToken })
-  });
-
-  if (!response.ok) {
-    throw new Error(`Token refresh failed (HTTP ${response.status}): ${response.statusText}`);
-  }
-
-  const json = await response.json();
-  const token = json.token || json.accessToken || json.access_token || (json.data && (json.data.token || json.data.accessToken || json.data.access_token));
-
-  if (!token) {
-    throw new Error('Access token not found in refresh response structure');
-  }
-
-  return token;
 }
 
 /**
