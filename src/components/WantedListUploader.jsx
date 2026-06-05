@@ -114,6 +114,17 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
       return;
     }
 
+    // Warn if no owner column was mapped
+    if (!mappings.ownerCol) {
+      const proceed = window.confirm(
+        'No Deal Owner column was detected or selected.\n\n' +
+        'Owner information is needed to group gaps and generate outreach emails by deal owner. ' +
+        'If you proceed, all deals will be assigned to "Unknown Owner".\n\n' +
+        'Do you still want to proceed?'
+      );
+      if (!proceed) return;
+    }
+
     // Extract auto-detected publishers from the pub_id column
     let detectedPublishers = [];
     if (mappings.pubIdCol) {

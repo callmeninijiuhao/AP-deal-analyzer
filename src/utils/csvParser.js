@@ -107,11 +107,12 @@ export function autoDetectMappings(headers) {
     revenueCol: ''
   };
 
-  const idPatterns = [/deal_?id/i, /^id$/i, /ap_?id/i, /package_?id/i];
-  const namePatterns = [/deal_?name/i, /^name$/i, /ap_?name/i, /package_?name/i];
-  const ownerPatterns = [/owner/i, /deal_?owner/i, /account_?manager/i, /^am$/i, /contact/i, /email/i];
-  const pubIdPatterns = [/pub_?id/i, /publisher_?id/i, /publisher/i, /^pub$/i];
-  const revenuePatterns = [/revenue/i, /^rev$/i, /deal_?revenue/i, /amount/i, /value/i];
+  const idPatterns = [/deal\s*id/i, /^id$/i, /ap\s*id/i, /package\s*id/i, /deal_meta_?id/i];
+  const namePatterns = [/deal\s*name/i, /^name$/i, /ap\s*name/i, /package\s*name/i];
+  // Prioritize human-readable owner names over numeric owner IDs
+  const ownerPatterns = [/metadata.*owner/i, /deal\s*owner\s*name/i, /deal\s*owner/i, /owner\s*name/i, /owner/i, /account\s*manager/i, /^am$/i, /contact/i, /email/i];
+  const pubIdPatterns = [/pub\s*id/i, /publisher\s*id/i, /publisher/i, /^pub$/i];
+  const revenuePatterns = [/revenue/i, /^rev$/i, /deal\s*revenue/i, /amount/i, /value/i, /spend/i, /budget/i];
 
   // Helper to find matching header
   const findMatch = (patterns) => {
