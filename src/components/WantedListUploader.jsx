@@ -16,6 +16,7 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
     dealIdCol: '',
     dealNameCol: '',
     ownerCol: '',
+    ownerMetaCol: '',
     pubIdCol: '',
     revenueCol: ''
   });
@@ -114,8 +115,8 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
       return;
     }
 
-    // Warn if no owner column was mapped
-    if (!mappings.ownerCol) {
+    // Warn if no owner column (primary or metadata) was mapped
+    if (!mappings.ownerCol && !mappings.ownerMetaCol) {
       const proceed = window.confirm(
         'No Deal Owner column was detected or selected.\n\n' +
         'Owner information is needed to group gaps and generate outreach emails by deal owner. ' +
@@ -251,6 +252,29 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
                     <option key={h} value={h}>{h}</option>
                   ))}
                 </select>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginTop: '0.2rem' }}>
+                  Primary contact/AM (not the numeric Owner ID).
+                </span>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" style={{ fontSize: '0.75rem' }}>
+                  Deal Metadata Owner <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(Optional)</span>
+                </label>
+                <select
+                  className="input-text"
+                  value={mappings.ownerMetaCol || ''}
+                  onChange={(e) => handleMappingChange('ownerMetaCol', e.target.value)}
+                  style={{ background: 'var(--bg-base)' }}
+                >
+                  <option value="">-- None --</option>
+                  {headers.map(h => (
+                    <option key={h} value={h}>{h}</option>
+                  ))}
+                </select>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginTop: '0.2rem' }}>
+                  Category/team owner, e.g. "Buyer/Data Provider", "DSP". Used as fallback if Deal Owner is empty.
+                </span>
               </div>
 
               <div className="form-group">
@@ -308,6 +332,7 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
                       <th>Deal ID</th>
                       <th>Deal Name</th>
                       <th>Owner</th>
+                      {mappings.ownerMetaCol && <th>Metadata Owner</th>}
                       {mappings.pubIdCol && <th>Pub ID</th>}
                       <th>Revenue</th>
                     </tr>
@@ -318,6 +343,7 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
                         <td><code>{row.id}</code></td>
                         <td>{row.name}</td>
                         <td>{row.owner}</td>
+                        {mappings.ownerMetaCol && <td>{row.ownerMeta || '—'}</td>}
                         {mappings.pubIdCol && <td><code>{row.pubId || '—'}</code></td>}
                         <td>{row.revenue > 0 ? `$${row.revenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'}</td>
                       </tr>

@@ -96,21 +96,24 @@ export function parseCsv(target) {
 /**
  * Automatically detects column mappings from headers using common patterns.
  * @param {string[]} headers - The list of column headers from the CSV.
- * @returns {{dealIdCol: string, dealNameCol: string, ownerCol: string, pubIdCol: string, revenueCol: string}}
+ * @returns {{dealIdCol: string, dealNameCol: string, ownerCol: string, ownerMetaCol: string, pubIdCol: string, revenueCol: string}}
  */
 export function autoDetectMappings(headers) {
   const mappings = {
     dealIdCol: '',
     dealNameCol: '',
     ownerCol: '',
+    ownerMetaCol: '',
     pubIdCol: '',
     revenueCol: ''
   };
 
   const idPatterns = [/deal\s*id/i, /^id$/i, /ap\s*id/i, /package\s*id/i, /deal_meta_?id/i];
   const namePatterns = [/deal\s*name/i, /^name$/i, /ap\s*name/i, /package\s*name/i];
-  // Prioritize human-readable owner names over numeric owner IDs
-  const ownerPatterns = [/metadata.*owner/i, /deal\s*owner\s*name/i, /deal\s*owner/i, /owner\s*name/i, /owner/i, /account\s*manager/i, /^am$/i, /contact/i, /email/i];
+  // Primary owner: person/email/contact (NOT numeric IDs, NOT metadata categories)
+  const ownerPatterns = [/deal\s*owner\s*name/i, /owner\s*name/i, /deal\s*owner(?!\s*id)/i, /account\s*manager/i, /^am$/i, /contact/i, /email/i];
+  // Metadata owner: category/team/type owner (e.g., "Buyer/Data Provider", "DSP")
+  const ownerMetaPatterns = [/metadata.*owner/i, /deal\s*metadata.*owner/i, /buyer.*provider/i, /dsp/i, /owner\s*type/i];
   const pubIdPatterns = [/pub\s*id/i, /publisher\s*id/i, /publisher/i, /^pub$/i];
   const revenuePatterns = [/revenue/i, /^rev$/i, /deal\s*revenue/i, /amount/i, /value/i, /spend/i, /budget/i];
 
@@ -125,7 +128,8 @@ export function autoDetectMappings(headers) {
 
   mappings.dealIdCol = findMatch(idPatterns) || headers[0] || '';
   mappings.dealNameCol = findMatch(namePatterns) || headers[1] || '';
-  mappings.ownerCol = findMatch(ownerPatterns) || headers[2] || '';
+  mappings.ownerCol = findMatch(ownerPatterns) || '';
+  mappings.ownerMetaCol = findMatch(ownerMetaPatterns) || '';
   mappings.pubIdCol = findMatch(pubIdPatterns) || '';
   mappings.revenueCol = findMatch(revenuePatterns) || '';
 
@@ -135,8 +139,8 @@ export function autoDetectMappings(headers) {
 /**
  * Maps raw rows into standardized deal objects using the mappings.
  * @param {Object[]} rows - The raw parsed rows.
- * @param {{dealIdCol: string, dealNameCol: string, ownerCol: string, pubIdCol: string, revenueCol: string}} mappings
- * @returns {Array<{id: string, name: string, owner: string, pubId: string, revenue: number}>}
+ * @param {{dealIdCol: string, dealNameCol: string, ownerCol: string, ownerMetaCol: string, pubIdCol: string, revenueCol: string}} mappings
+ * @returns {Array<{id: string, name: string, owner: string, ownerMeta: string, pubId: string, revenue: number}>}
  */
 export function mapParsedData(rows, mappings) {
   return rows.map((row, index) => {
@@ -146,8 +150,13 @@ export function mapParsedData(rows, mappings) {
     const rawName = row[mappings.dealNameCol];
     const name = rawName !== undefined && rawName !== null ? String(rawName).trim() : `Deal ${id || index + 1}`;
     
+    // Primary owner (person/contact), fallback to metadata owner (category/team)
     const rawOwner = row[mappings.ownerCol];
-    const owner = rawOwner !== undefined && rawOwner !== null ? String(rawOwner).trim() : 'Unknown Owner';
+    const rawOwnerMeta = mappings.ownerMetaCol ? row[mappings.ownerMetaCol] : '';
+    const primaryOwner = rawOwner !== undefined && rawOwner !== null ? String(rawOwner).trim() : '';
+    const metaOwner = rawOwnerMeta !== undefined && rawOwnerMeta !== null ? String(rawOwnerMeta).trim() : '';
+    const owner = primaryOwner || metaOwner || 'Unknown Owner';
+    const ownerMeta = metaOwner;
     
     const rawPubId = mappings.pubIdCol ? row[mappings.pubIdCol] : '';
     const pubId = rawPubId !== undefined && rawPubId !== null ? String(rawPubId).trim() : '';
@@ -160,6 +169,6 @@ export function mapParsedData(rows, mappings) {
       revenue = parseFloat(cleaned) || 0;
     }
 
-    return { id, name, owner, pubId, revenue };
+    return { id, name, owner, ownerMeta, pubId, revenue };
   }).filter(deal => deal.id); // Filter out rows with no Deal ID
 }
