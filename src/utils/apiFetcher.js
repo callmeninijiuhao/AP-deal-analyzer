@@ -40,24 +40,24 @@ function extractDealId(deal) {
  * @returns {Promise<string[]>} List of deal IDs.
  */
 /**
- * Determines and returns the active token.
- * Uses the obfuscated Access Token directly until July 10, 2026.
- * After that, returns null to signal that refresh/rotation is required via Refresh Token.
- * @returns {string|null} The token string or null if rotation is required.
+ * Checks if a token is expired based on the configured expiry date.
+ * @param {string|null} expiryDate - ISO date string or null.
+ * @returns {boolean}
  */
-export function getActiveToken() {
-  // Base64 of Access Token: kqa0ZV51JpWd0KUf04LiLFQ5pIBT
-  const OBFUSCATED_ACCESS_TOKEN = "a3FhMFpWNTFKcFdkMEtVZjA0TGlMRlE1cElCVA==";
-  const token = atob(OBFUSCATED_ACCESS_TOKEN);
-  
-  const currentDate = new Date();
-  const refreshDeadline = new Date('2026-07-10T00:00:00');
-  
-  if (currentDate >= refreshDeadline) {
-    return null; // Rotation deadline reached, must refresh using refresh token
-  }
-  
-  return token;
+export function isTokenExpired(expiryDate) {
+  if (!expiryDate) return false;
+  return new Date() >= new Date(expiryDate);
+}
+
+/**
+ * Returns human-readable days until token expiry.
+ * @param {string|null} expiryDate
+ * @returns {number|null} Days remaining, or null if no expiry set.
+ */
+export function getDaysUntilExpiry(expiryDate) {
+  if (!expiryDate) return null;
+  const diff = new Date(expiryDate) - new Date();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
 }
 
 /**
@@ -130,8 +130,8 @@ export async function fetchPublisherDeals(pubId, apiConfig) {
   }
   
   const headers = {};
-  if (apiConfig.authHeader) {
-    const auth = apiConfig.authHeader.trim();
+  if (apiConfig.authToken) {
+    const auth = apiConfig.authToken.trim();
     headers['Authorization'] = /^bearer\s+/i.test(auth) ? auth : `Bearer ${auth}`;
   }
 
@@ -197,32 +197,29 @@ export async function fetchPublisherDeals(pubId, apiConfig) {
 }
 
 /**
- * Refreshes the Access Token using the obfuscated refresh token.
+ * Attempts to refresh the Access Token using a user-provided refresh token.
+ * @param {string} refreshToken
  * @returns {Promise<string>} The new Access Token.
  */
-export async function refreshAccessToken() {
-  const targetUrl = 'http://api.pubmatic.com/v1/developer-integrations/developer/refreshToken';
+export async function refreshAccessToken(refreshToken) {
+  if (!refreshToken) {
+    throw new Error('No refresh token provided. Please obtain a new access token manually.');
+  }
+
+  const targetUrl = 'https://api.pubmatic.com/v1/developer-integrations/developer/refreshToken';
   let url = targetUrl;
 
-  // Auto-route through local proxy in development to bypass browser CORS locks
   const isDev = import.meta.env.DEV || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   if (isDev) {
     url = `http://localhost:3001/proxy?url=${encodeURIComponent(targetUrl)}`;
   }
-
-  // Base64 of YjObvbVowRh0hIN1EF0eOFYcO1RCWRrO
-  const OBFUSCATED_REFRESH_TOKEN = "WWpPYnZiVm93UmgwaElOMUVGMGVPRlljTzFSQ1dSck8=";
-  
-  const body = {
-    refreshToken: atob(OBFUSCATED_REFRESH_TOKEN)
-  };
 
   const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify(body)
+    body: JSON.stringify({ refreshToken })
   });
 
   if (!response.ok) {

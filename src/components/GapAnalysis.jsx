@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Download, Mail, ArrowRight, CheckCircle2, AlertTriangle, XCircle, Search } from 'lucide-react';
+import { Download, ArrowRight, CheckCircle2, XCircle, Search } from 'lucide-react';
 import { exportGapsToCsv, exportGapsToExcel } from '../utils/exportCsv';
 
 /**
- * Renders the Gap Analysis report (Step 3).
+ * Renders the Gap Analysis report (Step 4).
  * @param {Object} props
  * @param {Object} props.stats - Summary statistics.
  * @param {Array<Object>} props.gapData - Array of per-publisher gap results.
@@ -34,14 +34,6 @@ export default function GapAnalysis({
     exportGapsToCsv(gapData);
   };
 
-  // Determine coverage text & color variables
-  const getCoverageColor = (coverage) => {
-    if (coverage === 100) return 'var(--success)';
-    if (coverage >= 70) return 'var(--info)';
-    if (coverage >= 40) return 'var(--warning)';
-    return 'var(--error)';
-  };
-
   return (
     <div className="glass-card animated-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       
@@ -50,7 +42,7 @@ export default function GapAnalysis({
         <div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Gap Analysis Report</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-            Comparison of wanted deal mappings against live monetizing deals.
+            Missing deal mappings per publisher, grouped by deal owner.
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -129,11 +121,9 @@ export default function GapAnalysis({
           <table className="data-table">
             <thead>
               <tr>
-                <th style={{ width: '20%' }}>Deal Owner(s)</th>
                 <th style={{ width: '15%' }}>Publisher ID</th>
-                <th style={{ width: '15%' }}>Coverage</th>
-                <th style={{ width: '35%' }}>Missing AP Deals</th>
-                <th style={{ width: '15%' }}>Missed Revenue</th>
+                <th style={{ width: '20%' }}>Deal Owner(s)</th>
+                <th style={{ width: '65%' }}>Missing AP Deals</th>
               </tr>
             </thead>
             <tbody>
@@ -142,17 +132,16 @@ export default function GapAnalysis({
                 if (record.failed) {
                   return (
                     <tr key={record.pubId}>
-                      <td style={{ color: 'var(--text-muted)' }}>—</td>
                       <td><code>{record.pubId}</code></td>
+                      <td style={{ color: 'var(--text-muted)' }}>—</td>
                       <td>
                         <span className="badge badge-error" style={{ display: 'inline-flex', gap: '0.25rem' }}>
                           <XCircle size={12} /> Fetch Failed
                         </span>
+                        <span style={{ color: '#fca5a5', fontStyle: 'italic', fontSize: '0.85rem', marginLeft: '0.5rem' }} title={record.errorMsg}>
+                          {record.errorMsg ? String(record.errorMsg).replace(/^✗ Failed:\s*/, '') : 'API failed to respond for this publisher.'}
+                        </span>
                       </td>
-                      <td style={{ color: '#fca5a5', fontStyle: 'italic', fontSize: '0.85rem' }} title={record.errorMsg}>
-                        {record.errorMsg ? String(record.errorMsg).replace(/^✗ Failed:\s*/, '') : 'API failed to respond for this publisher.'}
-                      </td>
-                      <td style={{ color: 'var(--text-muted)' }}>—</td>
                     </tr>
                   );
                 }
@@ -161,32 +150,23 @@ export default function GapAnalysis({
                 if (record.missingDeals.length === 0) {
                   return (
                     <tr key={record.pubId}>
-                      <td style={{ color: 'var(--text-muted)' }}>—</td>
                       <td><code>{record.pubId}</code></td>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{ fontWeight: 600, color: 'var(--success)' }}>100%</span>
-                          <div style={{ width: '60px', height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '9999px', overflow: 'hidden' }}>
-                            <div style={{ width: '100%', height: '100%', background: 'var(--success)' }} />
-                          </div>
-                        </div>
-                      </td>
+                      <td style={{ color: 'var(--text-muted)' }}>—</td>
                       <td>
                         <span style={{ color: 'var(--success)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.9rem' }}>
                           <CheckCircle2 size={15} /> All deals mapped
                         </span>
                       </td>
-                      <td>$0.00</td>
                     </tr>
                   );
                 }
 
                 // Render Gaps State
-                // Consolidate deal owners
                 const owners = [...new Set(record.missingDeals.map(d => d.owner).filter(Boolean))];
 
                 return (
                   <tr key={record.pubId}>
+                    <td><code>{record.pubId}</code></td>
                     <td>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem', fontSize: '0.85rem' }}>
                         {owners.map((owner, idx) => (
@@ -194,15 +174,6 @@ export default function GapAnalysis({
                             {owner}
                           </span>
                         ))}
-                      </div>
-                    </td>
-                    <td><code>{record.pubId}</code></td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ fontWeight: 600, color: getCoverageColor(record.coverage) }}>{record.coverage}%</span>
-                        <div style={{ width: '60px', height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '9999px', overflow: 'hidden' }}>
-                          <div style={{ width: `${record.coverage}%`, height: '100%', background: getCoverageColor(record.coverage) }} />
-                        </div>
                       </div>
                     </td>
                     <td>
@@ -224,13 +195,6 @@ export default function GapAnalysis({
                           </span>
                         ))}
                       </div>
-                    </td>
-                    <td>
-                      <span style={{ fontWeight: 600, color: record.missingRevenue > 0 ? '#d8b4fe' : 'var(--text-primary)' }}>
-                        {record.missingRevenue > 0 
-                          ? `$${record.missingRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
-                          : '$0.00'}
-                      </span>
                     </td>
                   </tr>
                 );

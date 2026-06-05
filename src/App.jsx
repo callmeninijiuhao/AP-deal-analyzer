@@ -8,7 +8,7 @@ import FetchProgress from './components/FetchProgress';
 import GapAnalysis from './components/GapAnalysis';
 import OutreachMessages, { DEFAULT_TEMPLATE } from './components/OutreachMessages';
 
-import { fetchAllPublishers, fetchPublisherDeals, refreshAccessToken, getActiveToken } from './utils/apiFetcher';
+import { fetchAllPublishers, fetchPublisherDeals } from './utils/apiFetcher';
 import { calculateGaps } from './utils/gapCalculator';
 
 // Dynamic default date range: last 7 days
@@ -33,9 +33,24 @@ export default function App() {
   const [publisherText, setPublisherText] = useState('');
 
   // Step 3 Data (API Configuration)
+  const loadSavedToken = () => {
+    try {
+      return {
+        authToken: localStorage.getItem('ap_gap_auth_token') || '',
+        refreshToken: localStorage.getItem('ap_gap_refresh_token') || '',
+        tokenExpiry: localStorage.getItem('ap_gap_token_expiry') || ''
+      };
+    } catch {
+      return { authToken: '', refreshToken: '', tokenExpiry: '' };
+    }
+  };
+  const savedTokens = loadSavedToken();
+
   const [apiConfig, setApiConfig] = useState({
     baseUrl: DEFAULT_PUBMATIC_URL,
-    authHeader: '',
+    authToken: savedTokens.authToken,
+    refreshToken: savedTokens.refreshToken,
+    tokenExpiry: savedTokens.tokenExpiry,
     jsonPath: 'rows',
     delayMs: 200,
     concurrency: 5,
@@ -131,39 +146,20 @@ export default function App() {
       }
     };
 
-    // Step A: Determine active token. Auto-refresh only if after rotation deadline.
-    let activeToken = getActiveToken();
-    if (!activeToken) {
+    // Token validation
+    if (!apiConfig.demoMode && !apiConfig.authToken) {
       setFetchLog(prev => [
         ...prev,
-        { timestamp: formatTime(), type: 'info', text: '[SYSTEM] Rotation deadline reached (July 10, 2026). Refreshing token...' }
+        { timestamp: formatTime(), type: 'error', text: '[SYSTEM] No access token configured. Please enter your API token in Step 3.' }
       ]);
-      try {
-        activeToken = await refreshAccessToken();
-        setFetchLog(prev => [
-          ...prev,
-          { timestamp: formatTime(), type: 'success', text: '[SYSTEM] Security token refreshed successfully!' }
-        ]);
-      } catch (err) {
-        setFetchLog(prev => [
-          ...prev,
-          { timestamp: formatTime(), type: 'error', text: `[SYSTEM] Token refresh failed: ${err.message}` }
-        ]);
-        setIsFetching(false);
-        return;
-      }
+      setIsFetching(false);
+      return;
     }
-
-    // Step B: Build active config with authorization token injected
-    const activeConfig = {
-      ...apiConfig,
-      authHeader: activeToken
-    };
 
     try {
       const results = await fetchAllPublishers({
         publishers: targetPubs,
-        apiConfig: activeConfig,
+        apiConfig,
         controlSignal,
         onProgress: handleProgress
       });
@@ -212,28 +208,17 @@ export default function App() {
     const testPub = targetPubs[0];
     setVerifyPublisherId(testPub);
 
-    // Step A: Determine active token
-    let activeToken = getActiveToken();
-    if (!activeToken) {
-      try {
-        activeToken = await refreshAccessToken();
-      } catch (err) {
-        setVerifyResult({
-          success: false,
-          publisherId: testPub,
-          error: `Token refresh failed: ${err.message}`
-        });
-        return;
-      }
+    if (!apiConfig.demoMode && !apiConfig.authToken) {
+      setVerifyResult({
+        success: false,
+        publisherId: testPub,
+        error: 'No access token configured. Please enter your API token in the configuration form.'
+      });
+      return;
     }
 
-    const activeConfig = {
-      ...apiConfig,
-      authHeader: activeToken
-    };
-
     try {
-      const deals = await fetchPublisherDeals(testPub, activeConfig);
+      const deals = await fetchPublisherDeals(testPub, apiConfig);
       setVerifyResult({
         success: true,
         publisherId: testPub,

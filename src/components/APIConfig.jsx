@@ -1,5 +1,6 @@
 import React from 'react';
-import { Settings2, Info, ArrowRight, Calendar, TestTube } from 'lucide-react';
+import { Settings2, Info, ArrowRight, Calendar, TestTube, Key, Shield, Save } from 'lucide-react';
+import { getDaysUntilExpiry, isTokenExpired } from '../utils/apiFetcher';
 
 /**
  * Renders the API configuration panel (Step 3).
@@ -23,6 +24,26 @@ export default function APIConfig({
     });
   };
 
+  const handleSaveTokenToggle = () => {
+    const next = !apiConfig.saveToken;
+    onConfigChange({ ...apiConfig, saveToken: next });
+    if (next) {
+      try {
+        localStorage.setItem('ap_gap_auth_token', apiConfig.authToken || '');
+        localStorage.setItem('ap_gap_refresh_token', apiConfig.refreshToken || '');
+        localStorage.setItem('ap_gap_token_expiry', apiConfig.tokenExpiry || '');
+      } catch { /* ignore */ }
+    } else {
+      try {
+        localStorage.removeItem('ap_gap_auth_token');
+        localStorage.removeItem('ap_gap_refresh_token');
+        localStorage.removeItem('ap_gap_token_expiry');
+      } catch { /* ignore */ }
+    }
+  };
+
+  const daysLeft = getDaysUntilExpiry(apiConfig.tokenExpiry);
+  const expired = isTokenExpired(apiConfig.tokenExpiry);
   const isFormValid = apiConfig.baseUrl.trim() && apiConfig.jsonPath.trim();
   const fromDate = apiConfig.fromDate || '';
   const toDate = apiConfig.toDate || '';
@@ -38,6 +59,102 @@ export default function APIConfig({
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
             Configure headers, endpoints, and polling delay settings.
           </p>
+        </div>
+      </div>
+
+      {/* Token Management Panel */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1.25rem', background: 'rgba(255,255,255,0.02)', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <Key size={14} /> Authentication Token
+        </div>
+
+        {/* Token Status */}
+        {apiConfig.authToken && daysLeft !== null && (
+          <div style={{
+            padding: '0.5rem 0.75rem',
+            borderRadius: '0.4rem',
+            fontSize: '0.8rem',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            background: expired ? 'rgba(239,68,68,0.1)' : daysLeft <= 7 ? 'rgba(245,158,11,0.1)' : 'rgba(16,185,129,0.1)',
+            color: expired ? '#fca5a5' : daysLeft <= 7 ? '#fcd34d' : '#34d399',
+            border: `1px solid ${expired ? 'rgba(239,68,68,0.2)' : daysLeft <= 7 ? 'rgba(245,158,11,0.2)' : 'rgba(16,185,129,0.2)'}`,
+          }}>
+            <Shield size={14} />
+            {expired ? 'Token has expired — please update' : `Token expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`}
+          </div>
+        )}
+
+        <div className="grid-2">
+          <div className="form-group">
+            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <Key size={12} /> Access Token <span style={{ color: 'var(--error)' }}>*</span>
+            </label>
+            <input
+              type="password"
+              name="authToken"
+              className="input-text"
+              placeholder="Paste your PubMatic access token here"
+              value={apiConfig.authToken || ''}
+              onChange={handleInputChange}
+              style={{ fontFamily: 'monospace', letterSpacing: '0.05em' }}
+            />
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+              The token is hidden (password field) and never displayed in logs.
+            </span>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <Key size={12} /> Refresh Token <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span>
+            </label>
+            <input
+              type="password"
+              name="refreshToken"
+              className="input-text"
+              placeholder="Optional refresh token for auto-rotation"
+              value={apiConfig.refreshToken || ''}
+              onChange={handleInputChange}
+              style={{ fontFamily: 'monospace', letterSpacing: '0.05em' }}
+            />
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+              Optional. Used to obtain a new access token when the current one expires.
+            </span>
+          </div>
+        </div>
+
+        <div className="grid-2">
+          <div className="form-group">
+            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <Calendar size={12} /> Token Expiry Date
+            </label>
+            <input
+              type="date"
+              name="tokenExpiry"
+              className="input-text"
+              value={apiConfig.tokenExpiry || ''}
+              onChange={handleInputChange}
+            />
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+              Used to show a countdown warning. PubMatic tokens typically expire in 60 days.
+            </span>
+          </div>
+
+          <div className="form-group" style={{ justifyContent: 'flex-end' }}>
+            <div
+              className={`switch-container ${apiConfig.saveToken ? 'checked' : ''}`}
+              onClick={handleSaveTokenToggle}
+              style={{ marginTop: '1.5rem', gap: '0.75rem' }}
+            >
+              <div className="switch-control" />
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                <Save size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '0.3rem' }} />
+                Save token to this browser
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
