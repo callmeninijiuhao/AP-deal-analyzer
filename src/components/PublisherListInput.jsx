@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Users, Info } from 'lucide-react';
 import PublisherUploader from './PublisherUploader';
 
@@ -74,7 +74,7 @@ export default function PublisherListInput({
       </div>
 
       {initialPublishers && initialPublishers.length > 0 && (
-        <div style={{ background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.15)', borderRadius: '0.5rem', padding: '0.75rem 1rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+        <div style={{ background: 'var(--success-subtle)', border: '1px solid #bbf7d0', borderRadius: '0.625rem', padding: '0.75rem 1rem', fontSize: '0.85rem', color: 'var(--success)' }}>
           ✓ We auto-detected <strong>{initialPublishers.length} publisher ID(s)</strong> from your Wanted List. You can review, add, or edit them below.
         </div>
       )}

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Download, ArrowRight, CheckCircle2, XCircle, Search } from 'lucide-react';
 import { exportGapsToCsv, exportGapsToExcel } from '../utils/exportCsv';
 import { resolveOwner } from '../utils/csvParser';
@@ -131,21 +131,21 @@ export default function GapAnalysis({
 
         <div className="metric-card" style={{ borderLeft: '3px solid var(--warning)' }}>
           <span className="metric-title">Publishers with Gaps</span>
-          <span className="metric-value" style={{ color: stats.publishersWithGaps > 0 ? '#fcd34d' : 'var(--text-primary)' }}>
+          <span className="metric-value" style={{ color: stats.publishersWithGaps > 0 ? 'var(--warning)' : 'var(--text-primary)' }}>
             {stats.publishersWithGaps}
           </span>
         </div>
 
         <div className="metric-card" style={{ borderLeft: stats.totalGaps > 0 ? '3px solid var(--error)' : '3px solid var(--success)' }}>
           <span className="metric-title">Total Missing Mappings</span>
-          <span className="metric-value" style={{ color: stats.totalGaps > 0 ? '#fca5a5' : '#34d399' }}>
+          <span className="metric-value" style={{ color: stats.totalGaps > 0 ? 'var(--error)' : 'var(--success)' }}>
             {stats.totalGaps}
           </span>
         </div>
 
-        <div className="metric-card" style={{ borderLeft: stats.totalMissingRevenue > 0 ? '3px solid var(--accent, #a855f7)' : '3px solid var(--success)' }}>
+        <div className="metric-card" style={{ borderLeft: stats.totalMissingRevenue > 0 ? '3px solid var(--secondary)' : '3px solid var(--success)' }}>
           <span className="metric-title">Missed Revenue Opportunity</span>
-          <span className="metric-value" style={{ color: stats.totalMissingRevenue > 0 ? '#d8b4fe' : '#34d399' }}>
+          <span className="metric-value" style={{ color: stats.totalMissingRevenue > 0 ? 'var(--secondary)' : 'var(--success)' }}>
             {stats.totalMissingRevenue > 0
               ? `$${stats.totalMissingRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
               : '$0.00'}
@@ -154,7 +154,7 @@ export default function GapAnalysis({
       </div>
 
       {/* Table Filters */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border)', borderRadius: '0.5rem', padding: '0.75rem 1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: '0.625rem', padding: '0.75rem 1rem' }}>
         <div style={{ position: 'relative', flex: '1', minWidth: '250px', maxWidth: '400px' }}>
           <input
             type="text"
@@ -205,7 +205,7 @@ export default function GapAnalysis({
                         <span className="badge badge-error" style={{ display: 'inline-flex', gap: '0.25rem' }}>
                           <XCircle size={12} /> Fetch Failed
                         </span>
-                        <span style={{ color: '#fca5a5', fontStyle: 'italic', fontSize: '0.85rem', marginLeft: '0.5rem' }}>
+                        <span style={{ color: 'var(--error)', fontStyle: 'italic', fontSize: '0.85rem', marginLeft: '0.5rem' }}>
                           {row.errorMsg ? String(row.errorMsg).replace(/^✗ Failed:\s*/, '') : 'API failed to respond for this publisher.'}
                         </span>
                       </td>
@@ -219,7 +219,7 @@ export default function GapAnalysis({
                       <td><code>{row.pubId}</code></td>
                       <td style={{ color: 'var(--text-muted)' }}>—</td>
                       <td colSpan="2">
-                        <span style={{ color: 'var(--success)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.9rem' }}>
+                        <span style={{ color: 'var(--success)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.875rem', fontWeight: 500 }}>
                           <CheckCircle2 size={15} /> All deals mapped
                         </span>
                       </td>
@@ -238,7 +238,7 @@ export default function GapAnalysis({
                     </td>
                     <td style={{ verticalAlign: 'top', wordBreak: 'break-all', fontSize: '0.9rem' }}>
                       {row.isMissing ? (
-                        <span style={{ color: '#fca5a5', fontStyle: 'italic' }}>Missing Owner</span>
+                        <span style={{ color: 'var(--error)', fontStyle: 'italic' }}>Missing Owner</span>
                       ) : (
                         <span style={{ color: 'var(--text-secondary)' }}>
                           {row.owner}
@@ -251,7 +251,7 @@ export default function GapAnalysis({
                     <td style={{ verticalAlign: 'top', fontSize: '0.9rem' }}>
                       {dealList}
                     </td>
-                    <td style={{ verticalAlign: 'top', textAlign: 'right', fontWeight: 600, color: row.revenue > 0 ? '#d8b4fe' : 'var(--text-primary)', fontSize: '0.9rem' }}>
+                    <td style={{ verticalAlign: 'top', textAlign: 'right', fontWeight: 600, color: row.revenue > 0 ? 'var(--secondary)' : 'var(--text-primary)', fontSize: '0.9rem' }}>
                       {row.revenue > 0
                         ? `$${row.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                         : '$0.00'}
@@ -265,9 +265,9 @@ export default function GapAnalysis({
       </div>
 
       {stats.totalGaps === 0 && (
-        <div style={{ background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.15)', borderRadius: '0.5rem', padding: '1.25rem', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: 'center' }}>
+        <div style={{ background: 'var(--success-subtle)', border: '1px solid #bbf7d0', borderRadius: '0.625rem', padding: '1.25rem', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: 'center' }}>
           <CheckCircle2 size={32} style={{ color: 'var(--success)' }} />
-          <h4 style={{ fontWeight: 600, color: 'var(--text-primary)', marginTop: '0.25rem' }}>No Gaps Found</h4>
+          <h4 style={{ fontWeight: 600, color: 'var(--success)', marginTop: '0.25rem' }}>No Gaps Found</h4>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
             All publishers are 100% mapped to the wanted Auction Packages. No outreach is required.
           </p>

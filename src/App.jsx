@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { ArrowRight } from 'lucide-react';
 import StepIndicator from './components/StepIndicator';
 import WantedListUploader from './components/WantedListUploader';
@@ -350,10 +350,10 @@ export default function App() {
 
                 {verifyResult && (
                   <div style={{
-                    padding: '1.5rem',
-                    borderRadius: '0.75rem',
-                    border: `1px solid ${verifyResult.success ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
-                    background: verifyResult.success ? 'rgba(16, 185, 129, 0.05)' : 'rgba(239, 68, 68, 0.05)',
+                    padding: '1.25rem',
+                    borderRadius: '0.625rem',
+                    border: `1px solid ${verifyResult.success ? 'var(--success)' : 'var(--error)'}`,
+                    background: verifyResult.success ? 'var(--success-subtle)' : 'var(--error-subtle)',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '0.75rem'
@@ -363,15 +363,15 @@ export default function App() {
                     </div>
                     {verifyResult.success ? (
                       <>
-                        <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                        <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
                           <strong>Test Publisher:</strong> {verifyResult.publisherId}
                         </div>
-                        <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                        <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
                           <strong>Deals Found:</strong> {verifyResult.dealsCount}
                         </div>
                       </>
                     ) : (
-                      <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                      <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
                         <strong>Test Publisher:</strong> {verifyResult.publisherId}<br />
                         <strong>Error:</strong> {verifyResult.error}
                       </div>
@@ -380,14 +380,14 @@ export default function App() {
                 )}
 
                 {!verifyResult && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
                     <span className="spinner" style={{
                       display: 'inline-block',
                       width: '16px',
                       height: '16px',
-                      border: '2px solid rgba(255,255,255,0.3)',
+                      border: '2px solid var(--border-strong)',
                       borderRadius: '50%',
-                      borderTopColor: '#fff',
+                      borderTopColor: 'var(--primary)',
                       animation: 'spin 0.8s linear infinite'
                     }} />
                     Testing with publisher: {verifyPublisherId || extractPublisherIdFromUrl(apiConfig.baseUrl) || 'Default Publisher'}

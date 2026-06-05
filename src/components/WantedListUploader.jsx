@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { UploadCloud, CheckCircle2, FileSpreadsheet, Trash2, ArrowRight } from 'lucide-react';
 import { parseFile, autoDetectMappings, mapParsedData } from '../utils/csvParser';
 
@@ -180,7 +180,7 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
           </span>
         </div>
       ) : (
-        <div className="glass-card animated-fade-in" style={{ borderColor: 'var(--border-glow)' }}>
+        <div className="glass-card animated-fade-in">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <FileSpreadsheet style={{ color: 'var(--primary)' }} />
@@ -211,7 +211,6 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
                   className="input-text"
                   value={mappings.dealIdCol}
                   onChange={(e) => handleMappingChange('dealIdCol', e.target.value)}
-                  style={{ background: 'var(--bg-base)' }}
                 >
                   <option value="">-- Select Column --</option>
                   {headers.map(h => (
@@ -228,7 +227,6 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
                   className="input-text"
                   value={mappings.dealNameCol}
                   onChange={(e) => handleMappingChange('dealNameCol', e.target.value)}
-                  style={{ background: 'var(--bg-base)' }}
                 >
                   <option value="">-- None (Auto name) --</option>
                   {headers.map(h => (
@@ -245,7 +243,6 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
                   className="input-text"
                   value={mappings.ownerCol}
                   onChange={(e) => handleMappingChange('ownerCol', e.target.value)}
-                  style={{ background: 'var(--bg-base)' }}
                 >
                   <option value="">-- None (Unknown owner) --</option>
                   {headers.map(h => (
@@ -265,7 +262,6 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
                   className="input-text"
                   value={mappings.ownerMetaCol || ''}
                   onChange={(e) => handleMappingChange('ownerMetaCol', e.target.value)}
-                  style={{ background: 'var(--bg-base)' }}
                 >
                   <option value="">-- None --</option>
                   {headers.map(h => (
@@ -285,7 +281,6 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
                   className="input-text"
                   value={mappings.pubIdCol}
                   onChange={(e) => handleMappingChange('pubIdCol', e.target.value)}
-                  style={{ background: 'var(--bg-base)' }}
                 >
                   <option value="">-- None (Manually entered) --</option>
                   {headers.map(h => (
@@ -302,7 +297,6 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
                   className="input-text"
                   value={mappings.revenueCol || ''}
                   onChange={(e) => handleMappingChange('revenueCol', e.target.value)}
-                  style={{ background: 'var(--bg-base)' }}
                 >
                   <option value="">-- None (No revenue) --</option>
                   {headers.map(h => (
@@ -315,12 +309,12 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
 
           {/* Mapping Preview */}
           {mappings.dealIdCol && mappedData.length > 0 && (
-            <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border)', borderRadius: '0.5rem', padding: '1rem' }}>
+            <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: '0.625rem', padding: '1rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                 <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
                   Data Preview (All mapped rows)
                 </span>
-                <span style={{ fontSize: '0.8rem', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <span style={{ fontSize: '0.8rem', color: 'var(--success)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                   <CheckCircle2 size={14} /> Mapped {mappedData.length} deals successfully
                 </span>
               </div>
@@ -357,7 +351,7 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
       )}
 
       {error && (
-        <div style={{ background: 'var(--error-glow)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '0.5rem', padding: '1rem', color: '#fca5a5', fontSize: '0.875rem' }}>
+        <div style={{ background: 'var(--error-subtle)', border: '1px solid #fecaca', borderRadius: '0.625rem', padding: '1rem', color: 'var(--error)', fontSize: '0.875rem' }}>
           {error}
         </div>
       )}

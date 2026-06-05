@@ -1,4 +1,4 @@
-import React from 'react';
+import { memo } from 'react';
 import { Settings2, Info, ArrowRight, Calendar, TestTube, Key, Shield, Save } from 'lucide-react';
 import { getDaysUntilExpiry, isTokenExpired } from '../utils/apiFetcher';
 
@@ -10,7 +10,7 @@ import { getDaysUntilExpiry, isTokenExpired } from '../utils/apiFetcher';
  * @param {function} props.onNext - Navigate to next stage.
  * @param {function} props.onPrev - Navigate to previous stage.
  */
-export default function APIConfig({
+function APIConfig({
   apiConfig,
   onConfigChange,
   onNext,
@@ -63,7 +63,7 @@ export default function APIConfig({
       </div>
 
       {/* Token Management Panel */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1.25rem', background: 'rgba(255,255,255,0.02)', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1.25rem', background: 'var(--bg-subtle)', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           <Key size={14} /> Authentication Token
         </div>
@@ -78,9 +78,9 @@ export default function APIConfig({
             display: 'flex',
             alignItems: 'center',
             gap: '0.4rem',
-            background: expired ? 'rgba(239,68,68,0.1)' : daysLeft <= 7 ? 'rgba(245,158,11,0.1)' : 'rgba(16,185,129,0.1)',
-            color: expired ? '#fca5a5' : daysLeft <= 7 ? '#fcd34d' : '#34d399',
-            border: `1px solid ${expired ? 'rgba(239,68,68,0.2)' : daysLeft <= 7 ? 'rgba(245,158,11,0.2)' : 'rgba(16,185,129,0.2)'}`,
+            background: expired ? 'var(--error-subtle)' : daysLeft <= 7 ? 'var(--warning-subtle)' : 'var(--success-subtle)',
+            color: expired ? 'var(--error)' : daysLeft <= 7 ? 'var(--warning)' : 'var(--success)',
+            border: `1px solid ${expired ? '#fecaca' : daysLeft <= 7 ? '#fde68a' : '#bbf7d0'}`,
           }}>
             <Shield size={14} />
             {expired ? 'Token has expired — please update' : `Token expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`}
@@ -162,15 +162,15 @@ export default function APIConfig({
       <div
         className={`switch-container ${apiConfig.demoMode ? 'checked' : ''}`}
         onClick={() => onConfigChange({ ...apiConfig, demoMode: !apiConfig.demoMode })}
-        style={{ justifyContent: 'flex-start', gap: '0.75rem', padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '0.5rem', border: '1px solid var(--border)' }}
+        style={{ justifyContent: 'flex-start', gap: '0.75rem', padding: '0.75rem 1rem', background: 'var(--bg-subtle)', borderRadius: '0.5rem', border: '1px solid var(--border)' }}
       >
         <div className="switch-control" />
         <div>
-          <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+          <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
             <TestTube size={14} style={{ display: 'inline', marginRight: '0.35rem', verticalAlign: 'middle' }} />
             Demo Mode
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+          <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
             {apiConfig.demoMode
               ? 'Using fake deal data for testing. No real API calls will be made.'
               : 'Enable to test the full workflow without a live API connection.'}
@@ -304,3 +304,5 @@ export default function APIConfig({
     </div>
   );
 }
+
+export default memo(APIConfig);

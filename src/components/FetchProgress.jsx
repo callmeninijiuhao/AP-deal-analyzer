@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Play, Square, Check, RefreshCcw } from 'lucide-react';
 
 /**
@@ -72,9 +72,9 @@ export default function FetchProgress({
               display: 'inline-block',
               width: '10px',
               height: '10px',
-              border: '2px solid rgba(255,255,255,0.3)',
+              border: '2px solid var(--border-strong)',
               borderRadius: '50%',
-              borderTopColor: '#fff',
+              borderTopColor: 'var(--primary)',
               animation: 'spin 0.8s linear infinite'
             }} />
             Polling next publisher...

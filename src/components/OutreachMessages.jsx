@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { Copy, Check, CheckCircle2, HelpCircle, Plus, User, List, Hash, BarChart3 } from 'lucide-react';
 import { groupGapsByOwner, renderMessage } from '../utils/messageRenderer';
 
@@ -178,13 +178,12 @@ export default function OutreachMessages({ gapData, onPrev, template: controlled
           </div>
 
           {/* Owner Selector + Deal Preview */}
-          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '0.5rem', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: '0.625rem', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
               <User size={14} /> Preview by Deal Owner
             </div>
             <select
               className="input-text"
-              style={{ background: 'var(--bg-base)' }}
               value={selectedOwner}
               onChange={(e) => setSelectedOwner(e.target.value)}
             >
@@ -201,7 +200,7 @@ export default function OutreachMessages({ gapData, onPrev, template: controlled
                 </span>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', maxHeight: '160px', overflowY: 'auto' }}>
                   {selectedOwnerData.deals.map(deal => (
-                    <div key={deal.dealId} style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', padding: '0.35rem 0.5rem', background: 'rgba(255,255,255,0.03)', borderRadius: '0.3rem', border: '1px solid var(--border)' }}>
+                    <div key={deal.dealId} style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', padding: '0.35rem 0.5rem', background: 'var(--bg-surface)', borderRadius: '0.3rem', border: '1px solid var(--border)' }}>
                       <strong style={{ color: 'var(--primary)' }}>{deal.dealId}</strong> — {deal.dealName}
                       <span style={{ color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
                         ({deal.publishers.length} pub{deal.publishers.length !== 1 ? 's' : ''})
@@ -214,14 +213,14 @@ export default function OutreachMessages({ gapData, onPrev, template: controlled
           </div>
 
           {/* Template Help variables cheat-sheet */}
-          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '0.5rem', padding: '1rem' }}>
+          <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: '0.625rem', padding: '1rem' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
               <HelpCircle size={14} /> Available Template Variables
             </span>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
               <tbody>
                 {VARIABLES.map((v, i) => (
-                  <tr key={v.key} style={{ borderBottom: i < VARIABLES.length - 1 ? '1px solid rgba(255,255,255,0.05)' : undefined }}>
+                  <tr key={v.key} style={{ borderBottom: i < VARIABLES.length - 1 ? '1px solid var(--border)' : undefined }}>
                     <td style={{ padding: '0.4rem 0', fontWeight: 'bold', color: 'var(--primary)', width: '35%' }}><code>{v.key}</code></td>
                     <td style={{ padding: '0.4rem 0' }}>{v.desc}</td>
                   </tr>
@@ -245,7 +244,7 @@ export default function OutreachMessages({ gapData, onPrev, template: controlled
           </div>
 
           {renderedMessages.length === 0 ? (
-            <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)', border: '1px dashed var(--border)', borderRadius: '0.75rem' }}>
+            <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)', border: '1px dashed var(--border-strong)', borderRadius: '0.75rem', background: 'var(--bg-subtle)' }}>
               No messages generated. Is the gap list empty?
             </div>
           ) : (
@@ -263,7 +262,7 @@ export default function OutreachMessages({ gapData, onPrev, template: controlled
                       <span className="badge badge-info">
                         {msg.dealCount} Deal{msg.dealCount !== 1 ? 's' : ''}
                       </span>
-                      <span className="badge badge-warning" style={{ background: 'rgba(245,158,11,0.08)', color: '#fcd34d' }}>
+                      <span className="badge badge-warning">
                         {msg.publisherCount} Pub{msg.publisherCount !== 1 ? 's' : ''}
                       </span>
                     </div>
