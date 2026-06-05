@@ -352,8 +352,10 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
                       <tr key={idx}>
                         <td><code>{row.id}</code></td>
                         <td>{row.name}</td>
-                        <td>{row.owner}</td>
-                        {mappings.ownerMetaCol && <td>{row.ownerMeta || '—'}</td>}
+                        <td style={{ color: row.owner ? 'inherit' : 'var(--text-muted)', fontStyle: row.owner ? 'inherit' : 'italic' }}>
+                          {row.owner || '—'}
+                        </td>
+                        {mappings.ownerMetaCol && <td style={{ color: row.ownerMeta ? 'inherit' : 'var(--text-muted)' }}>{row.ownerMeta || '—'}</td>}
                         {mappings.pubIdCol && <td><code>{row.pubId || '—'}</code></td>}
                         {mappings.revenueCol && <td>{row.revenue > 0 ? `$${row.revenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'}</td>}
                       </tr>

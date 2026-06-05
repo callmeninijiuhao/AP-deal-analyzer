@@ -108,14 +108,34 @@ export function autoDetectMappings(headers) {
     revenueCol: ''
   };
 
-  const idPatterns = [/deal\s*id/i, /^id$/i, /ap\s*id/i, /package\s*id/i, /deal_meta_?id/i];
+  const idPatterns = [/deal\s*id/i, /^id$/i, /ap\s*id/i, /package\s*id/i, /deal_meta_?id/i, /deal_meta_id/i];
   const namePatterns = [/deal\s*name/i, /^name$/i, /ap\s*name/i, /package\s*name/i];
   // Primary owner: person/email/contact (NOT numeric IDs, NOT metadata categories)
-  const ownerPatterns = [/deal\s*owner\s*name/i, /owner\s*name/i, /deal\s*owner(?!\s*id)/i, /account\s*manager/i, /^am$/i, /contact/i, /email/i];
-  // Metadata owner: category/team/type owner (e.g., "Buyer/Data Provider", "DSP")
-  const ownerMetaPatterns = [/metadata.*owner/i, /deal\s*metadata.*owner/i, /buyer.*provider/i, /dsp/i, /owner\s*type/i];
+  const ownerPatterns = [
+    /^owner$/i,                       // exact "Owner"
+    /deal\s*owner\s*name/i,           // "Deal Owner Name"
+    /owner\s*name/i,                  // "Owner Name"
+    /deal\s*owner(?!\s*id)/i,         // "Deal Owner" but not "Deal Owner ID"
+    /account\s*manager/i,             // "Account Manager"
+    /^am$/i,                          // exact "AM"
+    /contact/i,                       // "Contact", "Contact Email"
+    /email/i                          // "Email", "Owner Email"
+  ];
+  // Metadata owner: category/team/type/buyer/dsp
+  const ownerMetaPatterns = [
+    /metadata.*owner/i,               // "Metadata Owner", "Deal Metadata Owner"
+    /deal\s*metadata.*owner/i,
+    /buyer.*provider/i,               // "Buyer/Data Provider"
+    /dsp/i,                           // "DSP"
+    /owner\s*type/i,                  // "Owner Type"
+    /^category$/i,                    // exact "Category"
+    /^type$/i,                        // exact "Type"
+    /^team$/i,                        // exact "Team"
+    /buyer/i,                         // "Buyer"
+    /data provider/i                  // "Data Provider"
+  ];
   const pubIdPatterns = [/pub\s*id/i, /publisher\s*id/i, /publisher/i, /^pub$/i];
-  const revenuePatterns = [/revenue/i, /^rev$/i, /deal\s*revenue/i, /amount/i, /value/i, /spend/i, /budget/i];
+  const revenuePatterns = [/revenue/i, /^rev$/i, /deal\s*revenue/i, /amount/i, /value/i, /spend/i, /budget/i, /income/i, /earnings/i];
 
   // Helper to find matching header
   const findMatch = (patterns) => {
