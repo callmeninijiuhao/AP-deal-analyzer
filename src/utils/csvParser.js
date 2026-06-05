@@ -108,35 +108,44 @@ export function autoDetectMappings(headers) {
     revenueCol: ''
   };
 
-  const idPatterns = [/deal\s*id/i, /^id$/i, /ap\s*id/i, /package\s*id/i, /deal_meta_?id/i, /deal_meta_id/i];
+  // Specific patterns for the user's fixed column naming convention
+  const idPatterns = [
+    /deal\s*meta\s*id/i,              // "Deal Meta ID" — specific, check first
+    /deal\s*id/i,                     // "Deal ID"
+    /^id$/i,
+    /ap\s*id/i,
+    /package\s*id/i
+  ];
   const namePatterns = [/deal\s*name/i, /^name$/i, /ap\s*name/i, /package\s*name/i];
-  // Primary owner: person/email/contact (NOT numeric IDs, NOT metadata categories)
+  // Primary owner: must NOT be "Deal Owner Id" (that's a numeric ID column)
   const ownerPatterns = [
+    /deal\s*owner(?!\s*id)/i,         // "Deal Owner" but NOT "Deal Owner Id"
     /^owner$/i,                       // exact "Owner"
     /deal\s*owner\s*name/i,           // "Deal Owner Name"
     /owner\s*name/i,                  // "Owner Name"
-    /deal\s*owner(?!\s*id)/i,         // "Deal Owner" but not "Deal Owner ID"
     /account\s*manager/i,             // "Account Manager"
-    /^am$/i,                          // exact "AM"
-    /contact/i,                       // "Contact", "Contact Email"
-    /email/i,                         // "Email", "Owner Email"
-    /owner/i                          // fallback: any header containing "owner"
+    /^am$/i,
+    /contact/i,
+    /email/i
   ];
-  // Metadata owner: category/team/type/buyer/dsp
+  // Metadata owner
   const ownerMetaPatterns = [
-    /metadata.*owner/i,               // "Metadata Owner", "Deal Metadata Owner"
+    /deal\s*metadata\s*deal\s*owner/i, // exact: "Deal Metadata Deal Owner"
     /deal\s*metadata.*owner/i,
-    /buyer.*provider/i,               // "Buyer/Data Provider"
-    /dsp/i,                           // "DSP"
-    /owner\s*type/i,                  // "Owner Type"
-    /^category$/i,                    // exact "Category"
-    /^type$/i,                        // exact "Type"
-    /^team$/i,                        // exact "Team"
-    /buyer/i,                         // "Buyer"
-    /data provider/i                  // "Data Provider"
+    /metadata.*owner/i
   ];
   const pubIdPatterns = [/pub\s*id/i, /publisher\s*id/i, /publisher/i, /^pub$/i];
-  const revenuePatterns = [/revenue/i, /^rev$/i, /deal\s*revenue/i, /amount/i, /value/i, /spend/i, /budget/i, /income/i, /earnings/i];
+  // Spend / Revenue: "Deal Spend", "Deal Spend 30 days", "Deal Spend 7 days"
+  const revenuePatterns = [
+    /deal\s*spend/i,                  // "Deal Spend..." catches 30d / 7d variants
+    /revenue/i,
+    /^rev$/i,
+    /amount/i,
+    /value/i,
+    /budget/i,
+    /income/i,
+    /earnings/i
+  ];
 
   // Helper to find matching header
   const findMatch = (patterns) => {

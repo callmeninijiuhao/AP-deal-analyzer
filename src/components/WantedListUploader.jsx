@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
-import { UploadCloud, CheckCircle2, FileSpreadsheet, Trash2, ArrowRight, ChevronDown, AlertTriangle } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { UploadCloud, CheckCircle2, FileSpreadsheet, Trash2, ArrowRight, ChevronDown } from 'lucide-react';
 import { parseFile, autoDetectMappings, mapParsedData } from '../utils/csvParser';
 
 /**
@@ -12,38 +12,30 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
   const [file, setFile] = useState(savedState?.file || null);
   const [headers, setHeaders] = useState(savedState?.headers || []);
   const [rawRows, setRawRows] = useState(savedState?.rawRows || []);
-  const [mappings, setMappings] = useState(savedState?.mappings || {
-    dealIdCol: '',
-    dealNameCol: '',
-    ownerCol: '',
-    ownerMetaCol: '',
-    pubIdCol: '',
-    revenueCol: ''
+  // Initialize mappings: use saved state if present, but re-run auto-detect
+  // to fill any gaps (so new regex patterns apply to old uploads)
+  const [mappings, setMappings] = useState(() => {
+    const base = savedState?.mappings || {
+      dealIdCol: '', dealNameCol: '', ownerCol: '', ownerMetaCol: '', pubIdCol: '', revenueCol: ''
+    };
+    if (savedState?.headers?.length > 0) {
+      const fresh = autoDetectMappings(savedState.headers);
+      return {
+        dealIdCol: base.dealIdCol || fresh.dealIdCol || '',
+        dealNameCol: base.dealNameCol || fresh.dealNameCol || '',
+        ownerCol: base.ownerCol || fresh.ownerCol || '',
+        ownerMetaCol: base.ownerMetaCol || fresh.ownerMetaCol || '',
+        pubIdCol: base.pubIdCol || fresh.pubIdCol || '',
+        revenueCol: base.revenueCol || fresh.revenueCol || ''
+      };
+    }
+    return base;
   });
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(
     Boolean(savedState?.mappings?.ownerMetaCol || savedState?.mappings?.pubIdCol || savedState?.mappings?.revenueCol)
   );
-
-  // Re-run auto-detect on mount if we have saved headers but some mappings are empty
-  // This ensures new regex patterns get applied to previously uploaded files
-  useEffect(() => {
-    if (savedState?.headers?.length > 0) {
-      const fresh = autoDetectMappings(savedState.headers);
-      setMappings(prev => {
-        // Only fill in fields that are currently empty
-        const next = { ...prev };
-        if (!next.dealIdCol && fresh.dealIdCol) next.dealIdCol = fresh.dealIdCol;
-        if (!next.dealNameCol && fresh.dealNameCol) next.dealNameCol = fresh.dealNameCol;
-        if (!next.ownerCol && fresh.ownerCol) next.ownerCol = fresh.ownerCol;
-        if (!next.ownerMetaCol && fresh.ownerMetaCol) next.ownerMetaCol = fresh.ownerMetaCol;
-        if (!next.pubIdCol && fresh.pubIdCol) next.pubIdCol = fresh.pubIdCol;
-        if (!next.revenueCol && fresh.revenueCol) next.revenueCol = fresh.revenueCol;
-        return next;
-      });
-    }
-  }, []);
   
   const fileInputRef = useRef(null);
 
@@ -354,23 +346,15 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
                 </span>
               </div>
 
-              {!mappings.ownerCol && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.75rem', padding: '0.5rem 0.75rem', background: 'var(--warning-subtle)', border: '1px solid #fde68a', borderRadius: '0.5rem', color: 'var(--warning)', fontSize: '0.8rem' }}>
-                  <AlertTriangle size={14} />
-                  No Deal Owner column detected. If your file has one, select it above. Otherwise outreach will group by metadata owner or show "Unknown Owner".
-                </div>
-              )}
-              
               <div className="table-container" style={{ maxHeight: '250px', overflowY: 'auto' }}>
                 <table className="data-table">
                   <thead>
                     <tr>
                       <th>Deal ID</th>
                       <th>Deal Name</th>
-                      <th>Owner</th>
-                      {mappings.ownerMetaCol && <th>Metadata Owner</th>}
-                      {mappings.pubIdCol && <th>Pub ID</th>}
-                      {mappings.revenueCol && <th>Revenue</th>}
+                      <th>Deal Owner</th>
+                      <th>Metadata Owner</th>
+                      <th>Spend</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -381,9 +365,12 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
                         <td style={{ color: row.owner ? 'inherit' : 'var(--text-muted)', fontStyle: row.owner ? 'inherit' : 'italic' }}>
                           {row.owner || '—'}
                         </td>
-                        {mappings.ownerMetaCol && <td style={{ color: row.ownerMeta ? 'inherit' : 'var(--text-muted)' }}>{row.ownerMeta || '—'}</td>}
-                        {mappings.pubIdCol && <td><code>{row.pubId || '—'}</code></td>}
-                        {mappings.revenueCol && <td>{row.revenue > 0 ? `$${row.revenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'}</td>}
+                        <td style={{ color: row.ownerMeta ? 'inherit' : 'var(--text-muted)' }}>
+                          {row.ownerMeta || '—'}
+                        </td>
+                        <td>
+                          {row.revenue > 0 ? `$${row.revenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
