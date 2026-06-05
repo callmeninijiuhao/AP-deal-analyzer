@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Download, ArrowRight, CheckCircle2, XCircle, Search } from 'lucide-react';
 import { exportGapsToCsv, exportGapsToExcel } from '../utils/exportCsv';
+import { resolveOwner } from '../utils/csvParser';
 
 /**
  * Renders the Gap Analysis report (Step 4).
@@ -44,13 +45,17 @@ export default function GapAnalysis({
         });
         return;
       }
-      // Group missing deals by owner
+      // Group missing deals by resolved owner (primary → metadata → unknown)
       const byOwner = {};
       record.missingDeals.forEach(deal => {
-        const rawOwners = deal.owner ? String(deal.owner).split(',').map(o => o.trim()).filter(Boolean) : ['Unknown Owner'];
+        const resolved = resolveOwner(deal);
+        // For grouping, also split comma-separated primary owners if present
+        const rawOwners = deal.owner
+          ? String(deal.owner).split(',').map(o => o.trim()).filter(Boolean)
+          : [resolved.value];
         rawOwners.forEach(owner => {
           if (!byOwner[owner]) {
-            byOwner[owner] = { deals: [], revenue: 0 };
+            byOwner[owner] = { deals: [], revenue: 0, isMetadataFallback: resolved.isMetadataFallback, isMissing: resolved.isMissing };
           }
           byOwner[owner].deals.push(deal);
           byOwner[owner].revenue += deal.revenue || 0;
@@ -62,6 +67,8 @@ export default function GapAnalysis({
           pubId: record.pubId,
           isFirstOwner: idx === 0,
           owner,
+          isMetadataFallback: data.isMetadataFallback,
+          isMissing: data.isMissing,
           deals: data.deals,
           revenue: data.revenue
         });
@@ -229,8 +236,17 @@ export default function GapAnalysis({
                     <td style={{ borderBottom: showPubId ? undefined : 'none', verticalAlign: 'top' }}>
                       {showPubId && <code>{row.pubId}</code>}
                     </td>
-                    <td style={{ verticalAlign: 'top', color: 'var(--text-secondary)', wordBreak: 'break-all', fontSize: '0.9rem' }}>
-                      {row.owner}
+                    <td style={{ verticalAlign: 'top', wordBreak: 'break-all', fontSize: '0.9rem' }}>
+                      {row.isMissing ? (
+                        <span style={{ color: '#fca5a5', fontStyle: 'italic' }}>Missing Owner</span>
+                      ) : (
+                        <span style={{ color: 'var(--text-secondary)' }}>
+                          {row.owner}
+                          {row.isMetadataFallback && (
+                            <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginLeft: '0.4rem' }}>(metadata)</span>
+                          )}
+                        </span>
+                      )}
                     </td>
                     <td style={{ verticalAlign: 'top', fontSize: '0.9rem' }}>
                       {dealList}

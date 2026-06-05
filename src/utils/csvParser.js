@@ -150,13 +150,11 @@ export function mapParsedData(rows, mappings) {
     const rawName = row[mappings.dealNameCol];
     const name = rawName !== undefined && rawName !== null ? String(rawName).trim() : `Deal ${id || index + 1}`;
     
-    // Primary owner (person/contact), fallback to metadata owner (category/team)
+    // Keep primary owner and metadata owner strictly separate
     const rawOwner = row[mappings.ownerCol];
     const rawOwnerMeta = mappings.ownerMetaCol ? row[mappings.ownerMetaCol] : '';
-    const primaryOwner = rawOwner !== undefined && rawOwner !== null ? String(rawOwner).trim() : '';
-    const metaOwner = rawOwnerMeta !== undefined && rawOwnerMeta !== null ? String(rawOwnerMeta).trim() : '';
-    const owner = primaryOwner || metaOwner || 'Unknown Owner';
-    const ownerMeta = metaOwner;
+    const owner = rawOwner !== undefined && rawOwner !== null ? String(rawOwner).trim() : '';
+    const ownerMeta = rawOwnerMeta !== undefined && rawOwnerMeta !== null ? String(rawOwnerMeta).trim() : '';
     
     const rawPubId = mappings.pubIdCol ? row[mappings.pubIdCol] : '';
     const pubId = rawPubId !== undefined && rawPubId !== null ? String(rawPubId).trim() : '';
@@ -171,4 +169,20 @@ export function mapParsedData(rows, mappings) {
 
     return { id, name, owner, ownerMeta, pubId, revenue };
   }).filter(deal => deal.id); // Filter out rows with no Deal ID
+}
+
+/**
+ * Resolves the effective owner for display/grouping, preferring primary owner.
+ * Returns metadata owner as fallback, with a flag indicating the source.
+ * @param {{owner: string, ownerMeta: string}} deal
+ * @returns {{value: string, isMetadataFallback: boolean, isMissing: boolean}}
+ */
+export function resolveOwner(deal) {
+  if (deal.owner) {
+    return { value: deal.owner, isMetadataFallback: false, isMissing: false };
+  }
+  if (deal.ownerMeta) {
+    return { value: deal.ownerMeta, isMetadataFallback: true, isMissing: false };
+  }
+  return { value: 'Unknown Owner', isMetadataFallback: false, isMissing: true };
 }

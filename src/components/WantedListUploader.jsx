@@ -115,12 +115,12 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
       return;
     }
 
-    // Warn if no owner column (primary or metadata) was mapped
-    if (!mappings.ownerCol && !mappings.ownerMetaCol) {
+    // Warn if no primary owner column was mapped
+    if (!mappings.ownerCol) {
       const proceed = window.confirm(
         'No Deal Owner column was detected or selected.\n\n' +
-        'Owner information is needed to group gaps and generate outreach emails by deal owner. ' +
-        'If you proceed, all deals will be assigned to "Unknown Owner".\n\n' +
+        'Primary owner information is needed to send personalized outreach. ' +
+        'If you proceed, primary owner will be left empty and outreach may group deals by metadata owner or show "Unknown Owner".\n\n' +
         'Do you still want to proceed?'
       );
       if (!proceed) return;

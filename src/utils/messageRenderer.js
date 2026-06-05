@@ -1,3 +1,5 @@
+import { resolveOwner } from './csvParser';
+
 /**
  * Extracts a friendly name from an owner string (typically an email).
  * e.g., "alice@example.com" -> "Alice" (capitalized)
@@ -40,12 +42,16 @@ export function groupGapsByOwner(gapData) {
     if (gapRecord.failed) return;
 
     gapRecord.missingDeals.forEach(deal => {
-      // Split by comma in case there are multiple owners listed
-      const rawOwners = deal.owner ? String(deal.owner).split(',') : ['Unknown Owner'];
-      
+      // Use resolveOwner to prefer primary owner, fallback to metadata owner
+      const resolved = resolveOwner(deal);
+      // Split by comma in case there are multiple primary owners listed
+      const rawOwners = deal.owner
+        ? String(deal.owner).split(',')
+        : [resolved.value];
+
       rawOwners.forEach(rawOwner => {
         const owner = rawOwner.trim();
-        if (!owner) return;
+        if (!owner || owner === 'Unknown Owner') return;
 
         const ownerKey = owner.toLowerCase();
         
