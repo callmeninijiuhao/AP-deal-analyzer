@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { UploadCloud, CheckCircle2, FileSpreadsheet, Trash2, ArrowRight, ChevronDown } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { UploadCloud, CheckCircle2, FileSpreadsheet, Trash2, ArrowRight, ChevronDown, AlertTriangle } from 'lucide-react';
 import { parseFile, autoDetectMappings, mapParsedData } from '../utils/csvParser';
 
 /**
@@ -25,6 +25,25 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
   const [showAdvanced, setShowAdvanced] = useState(
     Boolean(savedState?.mappings?.ownerMetaCol || savedState?.mappings?.pubIdCol || savedState?.mappings?.revenueCol)
   );
+
+  // Re-run auto-detect on mount if we have saved headers but some mappings are empty
+  // This ensures new regex patterns get applied to previously uploaded files
+  useEffect(() => {
+    if (savedState?.headers?.length > 0) {
+      const fresh = autoDetectMappings(savedState.headers);
+      setMappings(prev => {
+        // Only fill in fields that are currently empty
+        const next = { ...prev };
+        if (!next.dealIdCol && fresh.dealIdCol) next.dealIdCol = fresh.dealIdCol;
+        if (!next.dealNameCol && fresh.dealNameCol) next.dealNameCol = fresh.dealNameCol;
+        if (!next.ownerCol && fresh.ownerCol) next.ownerCol = fresh.ownerCol;
+        if (!next.ownerMetaCol && fresh.ownerMetaCol) next.ownerMetaCol = fresh.ownerMetaCol;
+        if (!next.pubIdCol && fresh.pubIdCol) next.pubIdCol = fresh.pubIdCol;
+        if (!next.revenueCol && fresh.revenueCol) next.revenueCol = fresh.revenueCol;
+        return next;
+      });
+    }
+  }, []);
   
   const fileInputRef = useRef(null);
 
@@ -334,6 +353,13 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
                   <CheckCircle2 size={14} /> Mapped {mappedData.length} deals successfully
                 </span>
               </div>
+
+              {!mappings.ownerCol && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.75rem', padding: '0.5rem 0.75rem', background: 'var(--warning-subtle)', border: '1px solid #fde68a', borderRadius: '0.5rem', color: 'var(--warning)', fontSize: '0.8rem' }}>
+                  <AlertTriangle size={14} />
+                  No Deal Owner column detected. If your file has one, select it above. Otherwise outreach will group by metadata owner or show "Unknown Owner".
+                </div>
+              )}
               
               <div className="table-container" style={{ maxHeight: '250px', overflowY: 'auto' }}>
                 <table className="data-table">

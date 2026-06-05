@@ -119,7 +119,8 @@ export function autoDetectMappings(headers) {
     /account\s*manager/i,             // "Account Manager"
     /^am$/i,                          // exact "AM"
     /contact/i,                       // "Contact", "Contact Email"
-    /email/i                          // "Email", "Owner Email"
+    /email/i,                         // "Email", "Owner Email"
+    /owner/i                          // fallback: any header containing "owner"
   ];
   // Metadata owner: category/team/type/buyer/dsp
   const ownerMetaPatterns = [
