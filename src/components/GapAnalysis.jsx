@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Download, ArrowRight, CheckCircle2, XCircle, Search } from 'lucide-react';
 import { exportGapsToCsv, exportGapsToExcel } from '../utils/exportCsv';
 
@@ -19,16 +19,76 @@ export default function GapAnalysis({
   const [searchTerm, setSearchTerm] = useState('');
   const [filterGapsOnly, setFilterGapsOnly] = useState(false);
 
-  // Filter gap records based on search and checkbox
-  const filteredData = gapData.filter(record => {
-    const matchesSearch = record.pubId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.missingDeals.some(d => d.id.toLowerCase().includes(searchTerm.toLowerCase()) || d.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      record.missingDeals.some(d => d.owner.toLowerCase().includes(searchTerm.toLowerCase()));
+  // Expand each publisher record into one row per deal owner
+  const expandedRows = useMemo(() => {
+    const rows = [];
+    gapData.forEach(record => {
+      if (record.failed) {
+        rows.push({
+          type: 'failed',
+          pubId: record.pubId,
+          owner: null,
+          deals: [],
+          revenue: 0,
+          errorMsg: record.errorMsg
+        });
+        return;
+      }
+      if (record.missingDeals.length === 0) {
+        rows.push({
+          type: 'complete',
+          pubId: record.pubId,
+          owner: null,
+          deals: [],
+          revenue: 0
+        });
+        return;
+      }
+      // Group missing deals by owner
+      const byOwner = {};
+      record.missingDeals.forEach(deal => {
+        const rawOwners = deal.owner ? String(deal.owner).split(',').map(o => o.trim()).filter(Boolean) : ['Unknown Owner'];
+        rawOwners.forEach(owner => {
+          if (!byOwner[owner]) {
+            byOwner[owner] = { deals: [], revenue: 0 };
+          }
+          byOwner[owner].deals.push(deal);
+          byOwner[owner].revenue += deal.revenue || 0;
+        });
+      });
+      Object.entries(byOwner).forEach(([owner, data], idx) => {
+        rows.push({
+          type: 'gap',
+          pubId: record.pubId,
+          isFirstOwner: idx === 0,
+          owner,
+          deals: data.deals,
+          revenue: data.revenue
+        });
+      });
+    });
+    return rows;
+  }, [gapData]);
 
-    const matchesGapsFilter = !filterGapsOnly || record.failed || record.missingDeals.length > 0;
+  // Filter rows based on search and checkbox
+  const filteredRows = useMemo(() => {
+    return expandedRows.filter(row => {
+      const matchesSearch =
+        row.pubId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (row.owner && row.owner.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        row.deals.some(d => d.id.toLowerCase().includes(searchTerm.toLowerCase()) || d.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    return matchesSearch && matchesGapsFilter;
-  });
+      const matchesGapsFilter = !filterGapsOnly || row.type !== 'complete';
+      return matchesSearch && matchesGapsFilter;
+    });
+  }, [expandedRows, searchTerm, filterGapsOnly]);
+
+  // Determine which publishers are visible (for rowspan logic)
+  const visiblePubIds = useMemo(() => {
+    const ids = new Set();
+    filteredRows.forEach(row => ids.add(row.pubId));
+    return ids;
+  }, [filteredRows]);
 
   const handleExport = () => {
     exportGapsToCsv(gapData);
@@ -36,13 +96,13 @@ export default function GapAnalysis({
 
   return (
     <div className="glass-card animated-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      
+
       {/* Header Info */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Gap Analysis Report</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-            Missing deal mappings per publisher, grouped by deal owner.
+            Missing deal mappings per publisher, broken down by deal owner.
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -61,7 +121,7 @@ export default function GapAnalysis({
           <span className="metric-title">Publishers Checked</span>
           <span className="metric-value">{stats.totalPublishers}</span>
         </div>
-        
+
         <div className="metric-card" style={{ borderLeft: '3px solid var(--warning)' }}>
           <span className="metric-title">Publishers with Gaps</span>
           <span className="metric-value" style={{ color: stats.publishersWithGaps > 0 ? '#fcd34d' : 'var(--text-primary)' }}>
@@ -79,8 +139,8 @@ export default function GapAnalysis({
         <div className="metric-card" style={{ borderLeft: stats.totalMissingRevenue > 0 ? '3px solid var(--accent, #a855f7)' : '3px solid var(--success)' }}>
           <span className="metric-title">Missed Revenue Opportunity</span>
           <span className="metric-value" style={{ color: stats.totalMissingRevenue > 0 ? '#d8b4fe' : '#34d399' }}>
-            {stats.totalMissingRevenue > 0 
-              ? `$${stats.totalMissingRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
+            {stats.totalMissingRevenue > 0
+              ? `$${stats.totalMissingRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
               : '$0.00'}
           </span>
         </div>
@@ -113,7 +173,7 @@ export default function GapAnalysis({
 
       {/* Gap Report Table */}
       <div className="table-container">
-        {filteredData.length === 0 ? (
+        {filteredRows.length === 0 ? (
           <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
             No publisher records match your search filters.
           </div>
@@ -121,38 +181,37 @@ export default function GapAnalysis({
           <table className="data-table">
             <thead>
               <tr>
-                <th style={{ width: '15%' }}>Publisher ID</th>
-                <th style={{ width: '20%' }}>Deal Owner(s)</th>
-                <th style={{ width: '65%' }}>Missing AP Deals</th>
+                <th style={{ width: '12%' }}>Publisher ID</th>
+                <th style={{ width: '15%' }}>Deal Owner</th>
+                <th style={{ width: '43%' }}>Missing AP Deals</th>
+                <th style={{ width: '15%', textAlign: 'right' }}>Revenue Potential</th>
               </tr>
             </thead>
             <tbody>
-              {filteredData.map((record) => {
-                // Render Failed fetch state
-                if (record.failed) {
+              {filteredRows.map((row, index) => {
+                if (row.type === 'failed') {
                   return (
-                    <tr key={record.pubId}>
-                      <td><code>{record.pubId}</code></td>
+                    <tr key={`${row.pubId}-failed`}>
+                      <td><code>{row.pubId}</code></td>
                       <td style={{ color: 'var(--text-muted)' }}>—</td>
-                      <td>
+                      <td colSpan="2">
                         <span className="badge badge-error" style={{ display: 'inline-flex', gap: '0.25rem' }}>
                           <XCircle size={12} /> Fetch Failed
                         </span>
-                        <span style={{ color: '#fca5a5', fontStyle: 'italic', fontSize: '0.85rem', marginLeft: '0.5rem' }} title={record.errorMsg}>
-                          {record.errorMsg ? String(record.errorMsg).replace(/^✗ Failed:\s*/, '') : 'API failed to respond for this publisher.'}
+                        <span style={{ color: '#fca5a5', fontStyle: 'italic', fontSize: '0.85rem', marginLeft: '0.5rem' }}>
+                          {row.errorMsg ? String(row.errorMsg).replace(/^✗ Failed:\s*/, '') : 'API failed to respond for this publisher.'}
                         </span>
                       </td>
                     </tr>
                   );
                 }
 
-                // Render 100% complete state
-                if (record.missingDeals.length === 0) {
+                if (row.type === 'complete') {
                   return (
-                    <tr key={record.pubId}>
-                      <td><code>{record.pubId}</code></td>
+                    <tr key={`${row.pubId}-ok`}>
+                      <td><code>{row.pubId}</code></td>
                       <td style={{ color: 'var(--text-muted)' }}>—</td>
-                      <td>
+                      <td colSpan="2">
                         <span style={{ color: 'var(--success)', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.9rem' }}>
                           <CheckCircle2 size={15} /> All deals mapped
                         </span>
@@ -161,40 +220,25 @@ export default function GapAnalysis({
                   );
                 }
 
-                // Render Gaps State
-                const owners = [...new Set(record.missingDeals.map(d => d.owner).filter(Boolean))];
+                // Gap row — only show Publisher ID on the first owner row for this publisher
+                const showPubId = row.isFirstOwner;
+                const dealList = row.deals.map(d => d.name || d.id).join(', ');
 
                 return (
-                  <tr key={record.pubId}>
-                    <td><code>{record.pubId}</code></td>
-                    <td>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem', fontSize: '0.85rem' }}>
-                        {owners.map((owner, idx) => (
-                          <span key={idx} style={{ color: 'var(--text-secondary)', wordBreak: 'break-all' }} title={owner}>
-                            {owner}
-                          </span>
-                        ))}
-                      </div>
+                  <tr key={`${row.pubId}-${row.owner}`}>
+                    <td style={{ borderBottom: showPubId ? undefined : 'none', verticalAlign: 'top' }}>
+                      {showPubId && <code>{row.pubId}</code>}
                     </td>
-                    <td>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                        {record.missingDeals.map(deal => (
-                          <span 
-                            key={deal.id} 
-                            className="badge badge-warning" 
-                            style={{ 
-                              background: 'rgba(245, 158, 11, 0.08)',
-                              border: '1px solid rgba(245, 158, 11, 0.2)',
-                              color: '#fcd34d',
-                              fontSize: '0.75rem',
-                              padding: '0.2rem 0.5rem'
-                            }}
-                            title={deal.name}
-                          >
-                            <strong>{deal.id}</strong> · {deal.name} {deal.revenue > 0 ? `($${deal.revenue.toLocaleString()})` : ''}
-                          </span>
-                        ))}
-                      </div>
+                    <td style={{ verticalAlign: 'top', color: 'var(--text-secondary)', wordBreak: 'break-all', fontSize: '0.9rem' }}>
+                      {row.owner}
+                    </td>
+                    <td style={{ verticalAlign: 'top', fontSize: '0.9rem' }}>
+                      {dealList}
+                    </td>
+                    <td style={{ verticalAlign: 'top', textAlign: 'right', fontWeight: 600, color: row.revenue > 0 ? '#d8b4fe' : 'var(--text-primary)', fontSize: '0.9rem' }}>
+                      {row.revenue > 0
+                        ? `$${row.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        : '$0.00'}
                     </td>
                   </tr>
                 );
