@@ -9,6 +9,10 @@ import { URL } from 'url';
 
 const PORT = process.env.PROXY_PORT || 3001;
 
+// Hard-coded access token for local development proxy.
+// The frontend no longer exposes a token input; the proxy injects it automatically.
+const BACKEND_ACCESS_TOKEN = 'kqa0ZV51JpWd0KUf04LiLFQ5pIBT';
+
 const server = http.createServer(async (req, res) => {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -48,17 +52,16 @@ const server = http.createServer(async (req, res) => {
   console.log(`[Proxy] Forwarding request to: ${targetUrl}`);
 
   try {
-    // Copy incoming headers we want to forward
-    const headers = {};
-    if (req.headers.authorization) {
-      headers['Authorization'] = req.headers.authorization;
-    }
+    // Build outgoing headers — inject the backend token so the
+    // browser never needs to handle or expose it.
+    const headers = {
+      'Authorization': `Bearer ${BACKEND_ACCESS_TOKEN}`,
+      'User-Agent': req.headers['user-agent'] || 'AP-Gap-Analyzer-Proxy/1.0',
+      'Accept': req.headers['accept'] || '*/*'
+    };
     if (req.headers['content-type']) {
       headers['Content-Type'] = req.headers['content-type'];
     }
-    // Forward User-Agent so upstream APIs don't block us as a bot
-    headers['User-Agent'] = req.headers['user-agent'] || 'AP-Gap-Analyzer-Proxy/1.0';
-    headers['Accept'] = req.headers['accept'] || '*/*';
 
     console.log(`[Proxy] Forwarding ${req.method} to: ${targetUrl}`);
 

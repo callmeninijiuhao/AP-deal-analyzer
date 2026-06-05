@@ -35,7 +35,6 @@ export default function App() {
   // Step 3 Data (API Configuration)
   const [apiConfig, setApiConfig] = useState({
     baseUrl: DEFAULT_PUBMATIC_URL,
-    authToken: '',
     jsonPath: 'rows',
     delayMs: 200,
     concurrency: 5,
@@ -131,16 +130,6 @@ export default function App() {
       }
     };
 
-    // Token validation
-    if (!apiConfig.demoMode && !apiConfig.authToken) {
-      setFetchLog(prev => [
-        ...prev,
-        { timestamp: formatTime(), type: 'error', text: '[SYSTEM] No access token configured. Please enter your API token in Step 3.' }
-      ]);
-      setIsFetching(false);
-      return;
-    }
-
     try {
       const results = await fetchAllPublishers({
         publishers: targetPubs,
@@ -192,15 +181,6 @@ export default function App() {
 
     const testPub = targetPubs[0];
     setVerifyPublisherId(testPub);
-
-    if (!apiConfig.demoMode && !apiConfig.authToken) {
-      setVerifyResult({
-        success: false,
-        publisherId: testPub,
-        error: 'No access token configured. Please enter your API token in the configuration form.'
-      });
-      return;
-    }
 
     try {
       const deals = await fetchPublisherDeals(testPub, apiConfig);

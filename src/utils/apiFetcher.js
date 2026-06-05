@@ -110,9 +110,11 @@ export async function fetchPublisherDeals(pubId, apiConfig) {
     }
     url = `${PROXY_BASE}/proxy?url=${encodeURIComponent(url)}`;
   }
-  
+
   const headers = {};
-  if (apiConfig.authToken) {
+  // In development the local proxy injects the Authorization header,
+  // so the browser does not need to (and should not) send it.
+  if (!isDev && apiConfig.authToken) {
     const auth = apiConfig.authToken.trim();
     headers['Authorization'] = /^bearer\s+/i.test(auth) ? auth : `Bearer ${auth}`;
   }

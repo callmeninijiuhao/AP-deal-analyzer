@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Settings2, Info, ArrowRight, Calendar, TestTube, Key } from 'lucide-react';
+import { Settings2, Info, ArrowRight, Calendar, TestTube } from 'lucide-react';
 
 /**
  * Renders the API configuration panel (Step 3).
@@ -38,31 +38,6 @@ function APIConfig({
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
             Configure headers, endpoints, and polling delay settings.
           </p>
-        </div>
-      </div>
-
-      {/* Token Management Panel */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1.25rem', background: 'var(--bg-subtle)', borderRadius: '0.75rem', border: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          <Key size={14} /> Authentication Token
-        </div>
-
-        <div className="form-group">
-          <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <Key size={12} /> Access Token <span style={{ color: 'var(--error)' }}>*</span>
-          </label>
-          <input
-            type="password"
-            name="authToken"
-            className="input-text"
-            placeholder="Paste your PubMatic access token here"
-            value={apiConfig.authToken || ''}
-            onChange={handleInputChange}
-            style={{ fontFamily: 'monospace', letterSpacing: '0.05em' }}
-          />
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-            The token is hidden (password field) and never displayed in logs.
-          </span>
         </div>
       </div>
 
