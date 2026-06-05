@@ -23,7 +23,7 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(
-    Boolean(savedState?.mappings?.pubIdCol || savedState?.mappings?.revenueCol)
+    Boolean(savedState?.mappings?.ownerMetaCol || savedState?.mappings?.pubIdCol || savedState?.mappings?.revenueCol)
   );
   
   const fileInputRef = useRef(null);
@@ -234,7 +234,7 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
                 </select>
               </div>
 
-              <div className="form-group">
+              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                 <label className="form-label" style={{ fontSize: '0.75rem' }}>
                   Deal Owner
                 </label>
@@ -250,25 +250,6 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
                 </select>
                 <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginTop: '0.2rem' }}>
                   Primary contact/AM for outreach grouping.
-                </span>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" style={{ fontSize: '0.75rem' }}>
-                  Deal Metadata Owner <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(Optional)</span>
-                </label>
-                <select
-                  className="input-text"
-                  value={mappings.ownerMetaCol || ''}
-                  onChange={(e) => handleMappingChange('ownerMetaCol', e.target.value)}
-                >
-                  <option value="">-- None --</option>
-                  {headers.map(h => (
-                    <option key={h} value={h}>{h}</option>
-                  ))}
-                </select>
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginTop: '0.2rem' }}>
-                  Fallback category/team owner when primary owner is missing.
                 </span>
               </div>
             </div>
@@ -287,6 +268,25 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
 
               {showAdvanced && (
                 <div className="grid-2" style={{ gap: '1rem', marginTop: '1rem', padding: '1rem', background: 'var(--bg-subtle)', borderRadius: '0.625rem', border: '1px solid var(--border)' }}>
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontSize: '0.75rem' }}>
+                      Deal Metadata Owner
+                    </label>
+                    <select
+                      className="input-text"
+                      value={mappings.ownerMetaCol || ''}
+                      onChange={(e) => handleMappingChange('ownerMetaCol', e.target.value)}
+                    >
+                      <option value="">-- None --</option>
+                      {headers.map(h => (
+                        <option key={h} value={h}>{h}</option>
+                      ))}
+                    </select>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginTop: '0.2rem' }}>
+                      Fallback when primary owner is missing.
+                    </span>
+                  </div>
+
                   <div className="form-group">
                     <label className="form-label" style={{ fontSize: '0.75rem' }}>
                       Publisher ID
