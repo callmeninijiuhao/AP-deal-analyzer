@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { UploadCloud, CheckCircle2, FileSpreadsheet, Trash2, ArrowRight } from 'lucide-react';
+import { UploadCloud, CheckCircle2, FileSpreadsheet, Trash2, ArrowRight, ChevronDown } from 'lucide-react';
 import { parseFile, autoDetectMappings, mapParsedData } from '../utils/csvParser';
 
 /**
@@ -22,6 +22,9 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
   });
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(
+    Boolean(savedState?.mappings?.pubIdCol || savedState?.mappings?.revenueCol)
+  );
   
   const fileInputRef = useRef(null);
 
@@ -198,10 +201,6 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
 
           {/* Mappings Setup */}
           <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1.5rem', marginBottom: '1.5rem' }}>
-            <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1rem' }}>
-              Map File Columns to Deal Fields
-            </h4>
-            
             <div className="grid-2" style={{ gap: '1rem' }}>
               <div className="form-group">
                 <label className="form-label" style={{ fontSize: '0.75rem' }}>
@@ -250,7 +249,7 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
                   ))}
                 </select>
                 <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginTop: '0.2rem' }}>
-                  Primary contact/AM (not the numeric Owner ID).
+                  Primary contact/AM for outreach grouping.
                 </span>
               </div>
 
@@ -269,41 +268,58 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
                   ))}
                 </select>
                 <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginTop: '0.2rem' }}>
-                  Category/team owner, e.g. "Buyer/Data Provider", "DSP". Used as fallback if Deal Owner is empty.
+                  Fallback category/team owner when primary owner is missing.
                 </span>
               </div>
+            </div>
 
-              <div className="form-group">
-                <label className="form-label" style={{ fontSize: '0.75rem' }}>
-                  Publisher ID (Optional)
-                </label>
-                <select
-                  className="input-text"
-                  value={mappings.pubIdCol}
-                  onChange={(e) => handleMappingChange('pubIdCol', e.target.value)}
-                >
-                  <option value="">-- None (Manually entered) --</option>
-                  {headers.map(h => (
-                    <option key={h} value={h}>{h}</option>
-                  ))}
-                </select>
-              </div>
+            {/* Advanced options toggle */}
+            <div style={{ marginTop: '1.25rem' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setShowAdvanced(s => !s)}
+                style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', gap: '0.35rem' }}
+              >
+                <ChevronDown size={14} style={{ transform: showAdvanced ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }} />
+                Advanced options
+              </button>
 
-              <div className="form-group">
-                <label className="form-label" style={{ fontSize: '0.75rem' }}>
-                  Deal Revenue (Optional)
-                </label>
-                <select
-                  className="input-text"
-                  value={mappings.revenueCol || ''}
-                  onChange={(e) => handleMappingChange('revenueCol', e.target.value)}
-                >
-                  <option value="">-- None (No revenue) --</option>
-                  {headers.map(h => (
-                    <option key={h} value={h}>{h}</option>
-                  ))}
-                </select>
-              </div>
+              {showAdvanced && (
+                <div className="grid-2" style={{ gap: '1rem', marginTop: '1rem', padding: '1rem', background: 'var(--bg-subtle)', borderRadius: '0.625rem', border: '1px solid var(--border)' }}>
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontSize: '0.75rem' }}>
+                      Publisher ID
+                    </label>
+                    <select
+                      className="input-text"
+                      value={mappings.pubIdCol}
+                      onChange={(e) => handleMappingChange('pubIdCol', e.target.value)}
+                    >
+                      <option value="">-- None (Manually entered) --</option>
+                      {headers.map(h => (
+                        <option key={h} value={h}>{h}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontSize: '0.75rem' }}>
+                      Deal Revenue
+                    </label>
+                    <select
+                      className="input-text"
+                      value={mappings.revenueCol || ''}
+                      onChange={(e) => handleMappingChange('revenueCol', e.target.value)}
+                    >
+                      <option value="">-- None (No revenue) --</option>
+                      {headers.map(h => (
+                        <option key={h} value={h}>{h}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -311,8 +327,8 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
           {mappings.dealIdCol && mappedData.length > 0 && (
             <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: '0.625rem', padding: '1rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
-                  Data Preview (All mapped rows)
+                <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
+                  Preview
                 </span>
                 <span style={{ fontSize: '0.8rem', color: 'var(--success)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                   <CheckCircle2 size={14} /> Mapped {mappedData.length} deals successfully
@@ -328,7 +344,7 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
                       <th>Owner</th>
                       {mappings.ownerMetaCol && <th>Metadata Owner</th>}
                       {mappings.pubIdCol && <th>Pub ID</th>}
-                      <th>Revenue</th>
+                      {mappings.revenueCol && <th>Revenue</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -339,7 +355,7 @@ export default function WantedListUploader({ onUploadComplete, savedState }) {
                         <td>{row.owner}</td>
                         {mappings.ownerMetaCol && <td>{row.ownerMeta || '—'}</td>}
                         {mappings.pubIdCol && <td><code>{row.pubId || '—'}</code></td>}
-                        <td>{row.revenue > 0 ? `$${row.revenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'}</td>
+                        {mappings.revenueCol && <td>{row.revenue > 0 ? `$${row.revenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'}</td>}
                       </tr>
                     ))}
                   </tbody>

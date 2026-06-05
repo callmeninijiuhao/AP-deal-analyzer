@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Activity } from 'lucide-react';
 import StepIndicator from './components/StepIndicator';
 import WantedListUploader from './components/WantedListUploader';
 import PublisherListInput from './components/PublisherListInput';
@@ -269,9 +269,14 @@ export default function App() {
   return (
     <div className="app-container">
       <header>
-        <h1 className="brand-title">AP Gap Analyzer</h1>
+        <div>
+          <h1 className="brand-title">
+            <Activity size={20} style={{ color: 'var(--primary)' }} />
+            AP Gap Analyzer
+          </h1>
+        </div>
         <p className="brand-subtitle">
-          Audit publisher monetizing package mappings against your wanted deal distributions
+          audit publisher monetizing packages against wanted deal distributions
         </p>
       </header>
 
@@ -289,8 +294,7 @@ export default function App() {
         
         {/* STEP 1: Upload Wanted List */}
         {step === 1 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }} className="animated-fade-in">
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>1. Upload Wanted List</h2>
+          <div className="animated-fade-in">
             <WantedListUploader
               onUploadComplete={handleUploadComplete}
               savedState={uploaderSavedState}
