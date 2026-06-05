@@ -39,6 +39,7 @@ export default function App() {
     jsonPath: 'rows',
     delayMs: 200,
     concurrency: 5,
+    demoMode: false,
     fromDate: formatDateLocal(sevenDaysAgo),
     toDate: formatDateLocal(today)
   });

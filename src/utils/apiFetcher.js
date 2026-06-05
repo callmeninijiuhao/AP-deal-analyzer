@@ -80,7 +80,35 @@ export async function checkProxyHealth() {
   }
 }
 
+/**
+ * Returns mock deal data for demo/testing when real API is unavailable.
+ * @param {string} pubId
+ * @returns {string[]}
+ */
+function getMockDealsForPublisher(pubId) {
+  // Deterministic mock: hash pubId to a subset of fake deals
+  const allMockDeals = [
+    'DEAL_1001', 'DEAL_1002', 'DEAL_1003', 'DEAL_1004', 'DEAL_1005',
+    'DEAL_2001', 'DEAL_2002', 'DEAL_2003', 'DEAL_2004', 'DEAL_2005',
+    'DEAL_3001', 'DEAL_3002', 'DEAL_3003', 'DEAL_3004', 'DEAL_3005'
+  ];
+  // Use char code sum to pick a subset deterministically
+  const hash = pubId.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  const count = (hash % 8) + 1; // 1-8 deals
+  const start = hash % allMockDeals.length;
+  const deals = [];
+  for (let i = 0; i < count; i++) {
+    deals.push(allMockDeals[(start + i) % allMockDeals.length]);
+  }
+  return deals;
+}
+
 export async function fetchPublisherDeals(pubId, apiConfig) {
+  // Demo mode: return mock data without hitting the network
+  if (apiConfig.demoMode) {
+    return getMockDealsForPublisher(pubId);
+  }
+
   let url = apiConfig.baseUrl.replace('{pub_id}', encodeURIComponent(pubId));
 
   // Replace date placeholders if present
@@ -229,6 +257,26 @@ export async function fetchAllPublishers({
   const monetizingMap = {};
   const delayMs = apiConfig.delayMs !== undefined ? apiConfig.delayMs : 200;
   const concurrency = apiConfig.concurrency !== undefined ? apiConfig.concurrency : 5;
+
+  // Demo mode: simulate network delay but skip real requests
+  if (apiConfig.demoMode) {
+    for (let i = 0; i < publishers.length; i += concurrency) {
+      if (controlSignal?.cancelled) break;
+      const batch = publishers.slice(i, i + concurrency);
+      await Promise.all(batch.map(async (pubId) => {
+        if (controlSignal?.cancelled) return;
+        onProgress(pubId, 'fetching', 'Fetching deals (demo mode)...', 0);
+        await new Promise(r => setTimeout(r, 150));
+        const deals = getMockDealsForPublisher(pubId);
+        monetizingMap[pubId] = deals;
+        onProgress(pubId, 'success', `✓ [DEMO] Fetched ${deals.length} deals`, deals.length);
+      }));
+      if (i + concurrency < publishers.length && !controlSignal?.cancelled && delayMs > 0) {
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+    return monetizingMap;
+  }
 
   // Process publishers in concurrent batches to speed up fetching
   for (let i = 0; i < publishers.length; i += concurrency) {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings2, Info, ArrowRight, Calendar } from 'lucide-react';
+import { Settings2, Info, ArrowRight, Calendar, TestTube } from 'lucide-react';
 
 /**
  * Renders the API configuration panel (Step 3).
@@ -38,6 +38,26 @@ export default function APIConfig({
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
             Configure headers, endpoints, and polling delay settings.
           </p>
+        </div>
+      </div>
+
+      {/* Demo Mode Toggle */}
+      <div
+        className={`switch-container ${apiConfig.demoMode ? 'checked' : ''}`}
+        onClick={() => onConfigChange({ ...apiConfig, demoMode: !apiConfig.demoMode })}
+        style={{ justifyContent: 'flex-start', gap: '0.75rem', padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '0.5rem', border: '1px solid var(--border)' }}
+      >
+        <div className="switch-control" />
+        <div>
+          <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+            <TestTube size={14} style={{ display: 'inline', marginRight: '0.35rem', verticalAlign: 'middle' }} />
+            Demo Mode
+          </div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+            {apiConfig.demoMode
+              ? 'Using fake deal data for testing. No real API calls will be made.'
+              : 'Enable to test the full workflow without a live API connection.'}
+          </div>
         </div>
       </div>
 
