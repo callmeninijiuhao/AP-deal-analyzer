@@ -110,8 +110,7 @@ export function autoDetectMappings(headers) {
 
   // Specific patterns for the user's fixed column naming convention
   const idPatterns = [
-    /deal\s*meta\s*id/i,              // "Deal Meta ID" — specific, check first
-    /deal\s*id/i,                     // "Deal ID"
+    /deal\s*id/i,                     // "Deal ID" — prefer over "Deal Meta ID"
     /^id$/i,
     /ap\s*id/i,
     /package\s*id/i

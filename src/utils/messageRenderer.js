@@ -108,7 +108,7 @@ export function renderMessage(template, values) {
   const dealListText = values.deals
     .map(deal => {
       const pubList = deal.publishers.map(pub => `• ${pub}`).join('\n');
-      return `Deal Name: "${deal.dealName}" (ID: ${deal.dealId})\nPublisher ID(s):\n${pubList}`;
+      return `Deal ID: ${deal.dealId}\nDeal Name: "${deal.dealName}"\nPublisher ID(s):\n${pubList}`;
     })
     .join('\n\n');
 

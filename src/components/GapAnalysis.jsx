@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Download, ArrowRight, CheckCircle2, XCircle, Search } from 'lucide-react';
 import { exportGapsToCsv, exportGapsToExcel } from '../utils/exportCsv';
-import { resolveOwner } from '../utils/csvParser';
 
 /**
  * Renders the Gap Analysis report (Step 4).
@@ -45,17 +44,18 @@ export default function GapAnalysis({
         });
         return;
       }
-      // Group missing deals by resolved owner (primary → metadata → unknown)
+      // Group missing deals by primary owner only.
+      // If the upload had no deal owner column, we show empty (—) rather than
+      // falling back to metadata owner, because the user was already warned at
+      // upload time that outreach grouping will be affected.
       const byOwner = {};
       record.missingDeals.forEach(deal => {
-        const resolved = resolveOwner(deal);
-        // For grouping, also split comma-separated primary owners if present
         const rawOwners = deal.owner
           ? String(deal.owner).split(',').map(o => o.trim()).filter(Boolean)
-          : [resolved.value];
+          : [''];
         rawOwners.forEach(owner => {
           if (!byOwner[owner]) {
-            byOwner[owner] = { deals: [], revenue: 0, isMetadataFallback: resolved.isMetadataFallback, isMissing: resolved.isMissing };
+            byOwner[owner] = { deals: [], revenue: 0, isMetadataFallback: false, isMissing: true };
           }
           byOwner[owner].deals.push(deal);
           byOwner[owner].revenue += deal.revenue || 0;
@@ -229,7 +229,6 @@ export default function GapAnalysis({
 
                 // Gap row — only show Publisher ID on the first owner row for this publisher
                 const showPubId = row.isFirstOwner;
-                const dealList = row.deals.map(d => d.name || d.id).join(', ');
 
                 return (
                   <tr key={`${row.pubId}-${row.owner}`}>
@@ -238,7 +237,7 @@ export default function GapAnalysis({
                     </td>
                     <td style={{ verticalAlign: 'top', wordBreak: 'break-all', fontSize: '0.9rem' }}>
                       {row.isMissing ? (
-                        <span style={{ color: 'var(--error)', fontStyle: 'italic' }}>Missing Owner</span>
+                        <span style={{ color: 'var(--text-muted)' }}>—</span>
                       ) : (
                         <span style={{ color: 'var(--text-secondary)' }}>
                           {row.owner}
@@ -249,12 +248,39 @@ export default function GapAnalysis({
                       )}
                     </td>
                     <td style={{ verticalAlign: 'top', fontSize: '0.9rem' }}>
-                      {dealList}
+                      {row.deals.map((d, i) => (
+                        <div
+                          key={i}
+                          title={d.name || d.id}
+                          style={{
+                            padding: '0.35rem 0',
+                            borderBottom: i < row.deals.length - 1 ? '1px dashed var(--border)' : 'none',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }}
+                        >
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginRight: '0.4rem' }}>{i + 1}.</span>
+                          {d.name || d.id}
+                        </div>
+                      ))}
                     </td>
-                    <td style={{ verticalAlign: 'top', textAlign: 'right', fontWeight: 600, color: row.revenue > 0 ? 'var(--secondary)' : 'var(--text-primary)', fontSize: '0.9rem' }}>
-                      {row.revenue > 0
-                        ? `$${row.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                        : '$0.00'}
+                    <td style={{ verticalAlign: 'top', textAlign: 'right', fontSize: '0.9rem' }}>
+                      {row.deals.map((d, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            padding: '0.35rem 0',
+                            fontWeight: 600,
+                            color: d.revenue > 0 ? 'var(--secondary)' : 'var(--text-primary)',
+                            borderBottom: i < row.deals.length - 1 ? '1px dashed var(--border)' : 'none'
+                          }}
+                        >
+                          {d.revenue > 0
+                            ? `$${d.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            : '$0.00'}
+                        </div>
+                      ))}
                     </td>
                   </tr>
                 );

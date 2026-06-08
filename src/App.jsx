@@ -11,10 +11,16 @@ import OutreachMessages, { DEFAULT_TEMPLATE } from './components/OutreachMessage
 import { fetchAllPublishers, fetchPublisherDeals } from './utils/apiFetcher';
 import { calculateGaps } from './utils/gapCalculator';
 
-// Dynamic default date range: last 7 days
+// Dynamic default date range: last 7 complete days (day-before-yesterday back 6 days).
+// API data has a ~1-day lag and isn't fully ready until ~4pm the next day,
+// so we conservatively use the day before yesterday as the latest safe date.
 const today = new Date();
-const sevenDaysAgo = new Date(today);
-sevenDaysAgo.setDate(today.getDate() - 7);
+const dayBeforeYesterday = new Date(today);
+dayBeforeYesterday.setDate(today.getDate() - 2);
+
+const sevenDaysBefore = new Date(dayBeforeYesterday);
+sevenDaysBefore.setDate(dayBeforeYesterday.getDate() - 6);
+
 const formatDateLocal = (d) => d.toISOString().split('T')[0];
 
 const DEFAULT_PUBMATIC_URL = 'https://api.pubmatic.com/v1/analytics/data/publisher/{pub_id}?fromDate={from_date}T00:00&toDate={to_date}T23:59&dimensions=dealMetaId,date&metrics=revenue,paidImpressions,ecpm';
@@ -39,8 +45,8 @@ export default function App() {
     delayMs: 200,
     concurrency: 5,
     demoMode: false,
-    fromDate: formatDateLocal(sevenDaysAgo),
-    toDate: formatDateLocal(today)
+    fromDate: formatDateLocal(sevenDaysBefore),
+    toDate: formatDateLocal(dayBeforeYesterday)
   });
 
   // Step 3 Verification (pre-flight API test)
@@ -178,29 +184,25 @@ export default function App() {
   const handleVerifyApi = async (targetPubs) => {
     setIsVerifying(true);
     setVerifyResult(null);
+    setVerifyPublisherId(null);
 
-    const testPub = targetPubs[0];
-    setVerifyPublisherId(testPub);
+    // Test every publisher concurrently so the user sees results for all inputs.
+    const results = await Promise.all(
+      targetPubs.map(async (pubId) => {
+        try {
+          const deals = await fetchPublisherDeals(pubId, apiConfig);
+          return { publisherId: pubId, success: true, dealsCount: deals.length };
+        } catch (err) {
+          let errMsg = err.message;
+          if (errMsg === 'Failed to fetch' || errMsg === 'Load failed') {
+            errMsg = 'Failed to fetch (Network error, CORS issue, or server unreachable)';
+          }
+          return { publisherId: pubId, success: false, error: errMsg };
+        }
+      })
+    );
 
-    try {
-      const deals = await fetchPublisherDeals(testPub, apiConfig);
-      setVerifyResult({
-        success: true,
-        publisherId: testPub,
-        dealsCount: deals.length,
-        status: 200
-      });
-    } catch (err) {
-      let errMsg = err.message;
-      if (errMsg === 'Failed to fetch' || errMsg === 'Load failed') {
-        errMsg = 'Failed to fetch (Network error, CORS issue, or server unreachable)';
-      }
-      setVerifyResult({
-        success: false,
-        publisherId: testPub,
-        error: errMsg
-      });
-    }
+    setVerifyResult(results);
   };
 
   const handleResetFetch = () => {
@@ -306,45 +308,51 @@ export default function App() {
               <div className="glass-card animated-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                 <div>
                   <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>
-                    {verifyResult ? (verifyResult.success ? 'API Connection Verified' : 'API Verification Failed') : 'Verifying API Connection...'}
+                    {verifyResult
+                      ? (verifyResult.every(r => r.success) ? 'API Connection Verified' : 'API Verification Failed')
+                      : 'Verifying API Connection...'}
                   </h2>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
                     {verifyResult
-                      ? verifyResult.success
-                        ? 'The test call succeeded. Review the summary below before running the full batch.'
-                        : 'The test call failed. Please review your API configuration and try again.'
-                      : 'Sending a pre-flight test request to validate the endpoint, token, and date range...'}
+                      ? verifyResult.every(r => r.success)
+                        ? `The test calls succeeded for all ${verifyResult.length} publisher(s). Review the summary below before running the full batch.`
+                        : 'One or more test calls failed. Please review your API configuration and try again.'
+                      : `Sending pre-flight test requests to validate the endpoint and date range for ${publishers.length} publisher(s)...`}
                   </p>
                 </div>
 
                 {verifyResult && (
-                  <div style={{
-                    padding: '1.25rem',
-                    borderRadius: '0.625rem',
-                    border: `1px solid ${verifyResult.success ? 'var(--success)' : 'var(--error)'}`,
-                    background: verifyResult.success ? 'var(--success-subtle)' : 'var(--error-subtle)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.75rem'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, color: verifyResult.success ? 'var(--success)' : 'var(--error)' }}>
-                      {verifyResult.success ? '✓' : '✗'} {verifyResult.success ? 'HTTP 200 OK' : 'Connection Error'}
-                    </div>
-                    {verifyResult.success ? (
-                      <>
-                        <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                          <strong>Test Publisher:</strong> {verifyResult.publisherId}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {verifyResult.map((r) => (
+                      <div key={r.publisherId} style={{
+                        padding: '1rem 1.25rem',
+                        borderRadius: '0.625rem',
+                        border: `1px solid ${r.success ? 'var(--success)' : 'var(--error)'}`,
+                        background: r.success ? 'var(--success-subtle)' : 'var(--error-subtle)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.5rem'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, color: r.success ? 'var(--success)' : 'var(--error)' }}>
+                          {r.success ? '✓' : '✗'} {r.success ? 'HTTP 200 OK' : 'Connection Error'}
                         </div>
-                        <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                          <strong>Deals Found:</strong> {verifyResult.dealsCount}
-                        </div>
-                      </>
-                    ) : (
-                      <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                        <strong>Test Publisher:</strong> {verifyResult.publisherId}<br />
-                        <strong>Error:</strong> {verifyResult.error}
+                        {r.success ? (
+                          <>
+                            <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                              <strong>Publisher:</strong> <code>{r.publisherId}</code>
+                            </div>
+                            <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                              <strong>Deals Found:</strong> {r.dealsCount}
+                            </div>
+                          </>
+                        ) : (
+                          <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                            <strong>Publisher:</strong> <code>{r.publisherId}</code><br />
+                            <strong>Error:</strong> {r.error}
+                          </div>
+                        )}
                       </div>
-                    )}
+                    ))}
                   </div>
                 )}
 
@@ -368,7 +376,7 @@ export default function App() {
                     Back to Config
                   </button>
                   <div style={{ display: 'flex', gap: '1rem' }}>
-                    {verifyResult?.success && (
+                    {verifyResult?.every(r => r.success) && (
                       <button
                         className="btn btn-primary"
                         onClick={() => {
@@ -379,7 +387,7 @@ export default function App() {
                         Run Full Fetch <ArrowRight size={16} />
                       </button>
                     )}
-                    {verifyResult && !verifyResult.success && (
+                    {verifyResult && !verifyResult.every(r => r.success) && (
                       <button className="btn btn-secondary" onClick={() => { setVerifyResult(null); handleVerifyApi(publishers.length > 0 ? publishers : [verifyPublisherId || 'Default Publisher']); }}>
                         Retry Test
                       </button>
