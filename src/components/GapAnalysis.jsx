@@ -55,7 +55,8 @@ export default function GapAnalysis({
           : [''];
         rawOwners.forEach(owner => {
           if (!byOwner[owner]) {
-            byOwner[owner] = { deals: [], revenue: 0, isMetadataFallback: false, isMissing: true };
+            const isMissing = !deal.owner;
+            byOwner[owner] = { deals: [], revenue: 0, isMetadataFallback: false, isMissing };
           }
           byOwner[owner].deals.push(deal);
           byOwner[owner].revenue += deal.revenue || 0;
